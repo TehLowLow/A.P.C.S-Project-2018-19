@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define DEBUG 0
 
@@ -51,16 +52,33 @@ struct Couples {  //coppia sorgente destinazione collegata da una relazione
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct EntTable *initEntHash(){
+struct EntTable *initEntHash() {
 
 
+    struct EntTable *hash = NULL;
+
+    hash = calloc(4097, sizeof(struct EntTable));
+
+    return hash;
 
 }
 
 
+//----------------------------------------------------------------------------------------------------------------------
+struct RelTable *initRelHash() {
 
+    struct RelTable *hash = NULL;
+
+    hash = calloc(4097, sizeof(struct RelTable));
+
+    return hash;
+
+}
 
 //----------------------------------------------------------------------------------------------------------------------
+
+
+
 //----------------------------------------------------------------------------------------------------------------------
 //Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
 //relazione o comando di flusso.
