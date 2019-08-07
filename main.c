@@ -8,29 +8,60 @@ typedef enum Bool {
     false, true
 } bool;
 
+struct EntTable {
 
-struct Relation {
+    long int entNumber;  //Numero di entità hashate sotto questo indice
 
-    char *relName;                 //Nome della relazione
-    struct Entity *sourcePtr;      //Sorgente relazione
-    struct Entity *destPtr;        //Destinazione relazione
-
+    struct PlainEnt *entEntries; //Array che contiene tutte le entità hashate sotto un indice
 };
 
-/*
-struct Entity {
 
-    char *entName;                //Nome dell' entità
-    char **involvedRelation;     //Elenco di relazioni in cui è coinvolta
+struct PlainEnt {
 
+    char *entName; //Nome dell' entità
+
+    int *relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
 };
 
- Il primo test lo eseguo senza backtracking delle relazioni, provo a ricercare la singola entità in tutto l' elenco di relazioni
 
- */
+struct RelTable {
+
+    int relNumber; //Numero di entità hashate sotto questo indice
+
+    struct PlainRel *relEntries; //Array che contiene tutte le relazioni hashate sotto un indice
+};
+
+
+struct PlainRel {
+
+    char *relName; //Nome della relazione hashata sotto questo indice
+
+    struct Couples *binded;  //Array di coppie di entità collegate dalla relazione
+};
+
+
+struct Couples {  //coppia sorgente destinazione collegata da una relazione
+
+    char **source;
+
+    char **destination;
+};
 
 
 
+//----------------------------------------------------------------------------------------------------------------------
+
+struct EntTable *initEntHash(){
+
+
+
+}
+
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 //Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
 //relazione o comando di flusso.
 
@@ -87,18 +118,6 @@ bool ParseTxt() {
 
 
 int main() {
-
-    bool flow = true;
-
-    while (flow) {
-
-        flow = ParseTxt();
-
-    }
-
-
-
-    //return flow;
 
 
 }
