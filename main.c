@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 #define DEBUG 0
 
@@ -11,7 +12,7 @@ typedef enum Bool {
 
 struct EntTable {
 
-    long int entNumber;  //Numero di entità hashate sotto questo indice
+    unsigned int entNumber;  //Numero di entità hashate sotto questo indice
 
     struct PlainEnt *entEntries; //Array che contiene tutte le entità hashate sotto un indice
 };
@@ -27,7 +28,7 @@ struct PlainEnt {
 
 struct RelTable {
 
-    int relNumber; //Numero di entità hashate sotto questo indice
+    unsigned int relNumber; //Numero di entità hashate sotto questo indice
 
     struct PlainRel *relEntries; //Array che contiene tutte le relazioni hashate sotto un indice
 };
@@ -48,6 +49,9 @@ struct Couples {  //coppia sorgente destinazione collegata da una relazione
     char **destination;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+int hash64(char input);
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -91,8 +95,57 @@ struct RelTable *initRelHash() {
 
 void HashInputEnt(struct EntTable *hashTable) {
 
+    char *inputEnt = NULL;
+    unsigned int length;
+    int tableIndex;
+    bool found = false;
 
+    scanf("%ms", &inputEnt);
+
+    if (strlen(inputEnt) > 3) {
+
+        tableIndex = hash64(inputEnt[1]) * 64 + hash64(inputEnt[2]);
+
+    } else {
+
+        tableIndex = 4096;
+
+    }
+
+
+    for (unsigned int a = 0; a < hashTable[tableIndex].entNumber; a++) {
+
+        if (strcmp(hashTable[tableIndex].entEntries[a].entName, inputEnt) == 0) {
+
+            found = true;
+
+        }
+
+
+    }
+
+    if (!found) {
+
+        if(hashTable[tableIndex].entEntries == NULL){
+
+            hashTable[tableIndex].entEntries = calloc(1, sizeof(struct PlainEnt));
+
+        }
+
+        hashTable[tableIndex].entNumber++;
+
+        int temp = hashTable[tableIndex].entNumber;
+
+        hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
+                                                   hashTable->entNumber * sizeof(struct PlainEnt));
+
+        strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
+
+    }
 }
+
+
+
 
 
 
@@ -123,34 +176,35 @@ void HashInputEnt(struct EntTable *hashTable) {
 int hash64(char input) {
 
 
-    int firstHash = 0;
+    int hashed = 0;
 
-    firstHash = input;
+    hashed = input;
 
     if (input == 45) {
 
-        firstHash = 0;
+        hashed = 0;
 
 
     } else if (48 <= input && input <= 57) {
 
-        firstHash = input - 47;
+        hashed = input - 47;
 
     } else if (65 <= input && input <= 90) {
 
-        firstHash = input - 54;
+        hashed = input - 54;
 
 
     } else if (input == 95) {
 
-        firstHash = 37;
+        hashed = 37;
 
     } else if (97 <= input && input <= 122) {
 
-        firstHash = input - 59;
+        hashed = input - 59;
 
     }
 
+    return hashed;
 
 }
 
@@ -213,5 +267,8 @@ bool ParseTxt() {
 
 int main() {
 
+    struct EntTable *test = initEntHash();
+
+    HashInputEnt(test);
 
 }
