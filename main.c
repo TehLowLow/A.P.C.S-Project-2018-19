@@ -52,6 +52,10 @@ struct Couples {  //coppia sorgente destinazione collegata da una relazione
 
 //----------------------------------------------------------------------------------------------------------------------
 
+//Questa funzione crea la tabella di hashing per le entità. Gestisce 64*64 indici (hashing numerico per i primi due
+// caratteri) più una colonna speciale in caso di entità con nome composto da 1 carattere.
+
+
 struct EntTable *initEntHash() {
 
 
@@ -65,6 +69,10 @@ struct EntTable *initEntHash() {
 
 
 //----------------------------------------------------------------------------------------------------------------------
+
+//Questa funzione crea la tabella di hashing per le relazioni. Gestisce 64*64 indici (hashing numerico per i primi due
+// caratteri) più una colonna speciale in caso di relazioni con nome composto da 1 carattere.
+
 struct RelTable *initRelHash() {
 
     struct RelTable *hash = NULL;
@@ -77,6 +85,74 @@ struct RelTable *initRelHash() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+//Questa funzione viene chiamata quando in input leggo il comando addent, ne calcolo l hash, e aggiungo in coda
+//l' entità passata dal comando, sse questa non è gia presente nella tabella.
+
+
+void HashInputEnt(struct EntTable *hashTable) {
+
+
+}
+
+
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+//Questa funzione calcola l indice dell' array in cui inserire l' entità o la relazione. La chiave ritornata è calcolata
+//in base a una regola di riduzione dei caratteri validi in input da un indice base 64 a un indice decimale.
+
+//La compressione dei valori ascii di un carattere a valori compresi fra 0 e 63 avviene come:
+
+/* Se incontro il carattere "-", gli assegno il valore 0;
+ * Se incontro una cifra sottraggo al suo valore ascii 47;
+ * Se incontro una lettera maiuscola sottraggo 54
+ * Se incontro il carattere "_" gli assegno il valore 37
+ * Se incontro una lettera minuscola sottraggo 59
+ */
+
+//Una volta compressa la lettera, calcolo l hash come:
+
+//Val_prima * 64 + val_seconda.
+
+//Questo mi ritorna un indice compreso fra 0 e 4095, e lascia il valore indice 4096 per le entità che son più corte di
+//2 caratteri.
+
+
+int hash64(char input) {
+
+
+    int firstHash = 0;
+
+    firstHash = input;
+
+    if (input == 45) {
+
+        firstHash = 0;
+
+
+    } else if (48 <= input && input <= 57) {
+
+        firstHash = input - 47;
+
+    } else if (65 <= input && input <= 90) {
+
+        firstHash = input - 54;
+
+
+    } else if (input == 95) {
+
+        firstHash = 37;
+
+    } else if (97 <= input && input <= 122) {
+
+        firstHash = input - 59;
+
+    }
+
+
+}
 
 
 //----------------------------------------------------------------------------------------------------------------------
