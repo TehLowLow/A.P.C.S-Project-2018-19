@@ -154,35 +154,60 @@ void HashInputEnt(struct EntTable *hashTable) {
 //Questa funzione viene chiamata quando in input leggo il comando addrel, ne calcolo l hash, e aggiungo la realzione
 //passata dal comando, sse questa non è gia presente nella tabella.
 
-void HashInputRel(struct RelTable *hashTable) {
+void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) {
 
-    char* src;
-    char* dest;
-    char* inputRel;
+    char *src;
+    char *dest;
+    char *inputRel;
+    int tableIndex;
+    bool found = false;
 
 
     scanf("%ms", &src);
     scanf("%ms", &dest);
     scanf("%ms", &inputRel);
 
-    //Per prima cosa hashing
+    //Per prima cosa verifico che le due entità esistano nella EntTable
 
 
+    //Se le due entità esistono, procedo ed hasho la relazione per cercare se già esiste e se gia collega le due entità
 
 
+    if (strlen(inputRel) > 3) {
+
+        tableIndex = hash64(inputRel[1]) * 64 + hash64(inputRel[2]);
+
+    } else {
+
+        tableIndex = 4096;
+
+    }
 
 
+    //Cerco se la relazione esiste gia, se non esiste (per ora) la aggiungo in coda.
+
+    for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
+
+        if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
+
+            found = true;
+            break;
 
 
+        }
+    }
+
+    //Non la trovo, la aggiungo.
+
+    if (!found) {
+        //Bla bla
+
+    }
+
+    //La trovo, devo controllare le sue entità collegate e se trovo una relazione uguale non faccio nulla.
 
 
-
-
-
-
-
-
-
+    //Non trovo una relazione uguale, la aggiungo in coda.
 
 }
 
