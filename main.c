@@ -100,15 +100,15 @@ void HashInputEnt(struct EntTable *hashTable) {
     int tableIndex;
     bool found = false;
 
-    scanf("%ms", &inputEnt);
+    scanf("%ms", &inputEnt);      //Leggo l' entità
 
     if (strlen(inputEnt) > 3) {
 
-        tableIndex = hash64(inputEnt[1]) * 64 + hash64(inputEnt[2]);
+        tableIndex = hash64(inputEnt[1]) * 64 + hash64(inputEnt[2]);   //Se ha più di 1 carattere, hashing
 
     } else {
 
-        tableIndex = 4096;
+        tableIndex = 4096;  //Altrimenti array di singletons
 
     }
 
@@ -117,32 +117,79 @@ void HashInputEnt(struct EntTable *hashTable) {
 
         if (strcmp(hashTable[tableIndex].entEntries[a].entName, inputEnt) == 0) {
 
-            found = true;
+            found = true;  //Se l' entità è gia monitorata, non la aggiungo
+            break;
 
         }
-
-
     }
 
     if (!found) {
 
-        if(hashTable[tableIndex].entEntries == NULL){
+        if (hashTable[tableIndex].entEntries == NULL) {
 
             hashTable[tableIndex].entEntries = calloc(1, sizeof(struct PlainEnt));
 
+            //Se la tabella hash non ha ancora entità hashate con quella chiave, alloco
         }
 
         hashTable[tableIndex].entNumber++;
 
-        int temp = hashTable[tableIndex].entNumber;
+        unsigned int temp = hashTable[tableIndex].entNumber;
+
+        //Aggiungo una casella in cui salvare l' entità e la aggiungo
 
         hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
-                                                   hashTable->entNumber * sizeof(struct PlainEnt));
+                                                   hashTable[tableIndex].entNumber * sizeof(struct PlainEnt));
+
+
+        hashTable[tableIndex].entEntries[temp - 1].entName = malloc(1); //cerco un indirizzo per la stringa.
 
         strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
 
     }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+//Questa funzione viene chiamata quando in input leggo il comando addrel, ne calcolo l hash, e aggiungo la realzione
+//passata dal comando, sse questa non è gia presente nella tabella.
+
+void HashInputRel(struct RelTable *hashTable) {
+
+    char* src;
+    char* dest;
+    char* inputRel;
+
+
+    scanf("%ms", &src);
+    scanf("%ms", &dest);
+    scanf("%ms", &inputRel);
+
+    //Per prima cosa hashing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
 
 
 
@@ -173,32 +220,32 @@ void HashInputEnt(struct EntTable *hashTable) {
 //2 caratteri.
 
 
-int hash64(char input) {
+inline int hash64(char input) {
 
 
     int hashed = 0;
 
     hashed = input;
 
-    if (input == 45) {
+    if (input == 45) {  //Carattere '-'
 
         hashed = 0;
 
 
-    } else if (48 <= input && input <= 57) {
+    } else if (48 <= input && input <= 57) {  //Cifre 0...9
 
         hashed = input - 47;
 
-    } else if (65 <= input && input <= 90) {
+    } else if (65 <= input && input <= 90) { //Lettere Maiuscole A..Z
 
         hashed = input - 54;
 
 
-    } else if (input == 95) {
+    } else if (input == 95) { //Carattere '_'
 
         hashed = 37;
 
-    } else if (97 <= input && input <= 122) {
+    } else if (97 <= input && input <= 122) {  //Lettere minuscole a...z
 
         hashed = input - 59;
 
@@ -213,7 +260,7 @@ int hash64(char input) {
 //Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
 //relazione o comando di flusso.
 
-bool ParseTxt() {
+static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable) {
 
     char *inCommand = NULL;
 
@@ -223,12 +270,14 @@ bool ParseTxt() {
 
         if (strcmp(inCommand, "addent") == 0) {//Chiama la funzione che aggiunge un elemento all hash
 
+            HashInputEnt(entTable);
 
 
             if (DEBUG) { printf("%s", inCommand); }
             return true;
 
         } else {//Chiama la funzione che aggiunge una relazione alla hash
+
 
 
             if (DEBUG) { printf("%s", inCommand); }
@@ -267,8 +316,10 @@ bool ParseTxt() {
 
 int main() {
 
-    struct EntTable *test = initEntHash();
+    struct EntTable *entitiesHash = initEntHash();
+    struct RelTable *relationHash = initRelHash();
 
-    HashInputEnt(test);
 
 }
+
+//TODO cercare come mai usavo static inline nelle funzioni.
