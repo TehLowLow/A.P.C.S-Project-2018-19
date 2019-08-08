@@ -159,6 +159,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     char *src;
     char *dest;
     char *inputRel;
+    int hashedSrc;
+    int hashedDest;
     int tableIndex;
     bool found = false;
 
@@ -168,6 +170,14 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     scanf("%ms", &inputRel);
 
     //Per prima cosa verifico che le due entità esistano nella EntTable
+
+
+
+
+
+
+
+
 
 
     //Se le due entità esistono, procedo ed hasho la relazione per cercare se già esiste e se gia collega le due entità
@@ -200,15 +210,29 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     //Non la trovo, la aggiungo.
 
     if (!found) {
-        //Bla bla
+
+
+
+
+        //Bla bla e poi return
 
     }
 
-    //La trovo, devo controllare le sue entità collegate e se trovo una relazione uguale non faccio nulla.
+
+
+
+
+
+
+
+
+//La trovo, devo controllare le sue entità collegate e se trovo una relazione uguale non faccio nulla.
+
+
+
 
 
     //Non trovo una relazione uguale, la aggiungo in coda.
-
 }
 
 
@@ -224,6 +248,50 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 
 //----------------------------------------------------------------------------------------------------------------------
+
+int *FindInTable(bool isEntity, char *string1, char *string2, struct EntTable *ents, struct RelTable *rels) {
+
+    int hashedEntity;
+
+
+    if (isEntity) {
+
+        if (strlen(string1) > 3) {
+
+            hashedEntity = hash64(string1[1]) * 64 + hash64(string1[2]);
+
+        } else {
+
+            hashedEntity = 4096;
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+}
+
+
+
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 
 //Questa funzione calcola l indice dell' array in cui inserire l' entità o la relazione. La chiave ritornata è calcolata
 //in base a una regola di riduzione dei caratteri validi in input da un indice base 64 a un indice decimale.
