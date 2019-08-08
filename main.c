@@ -204,6 +204,36 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 
 
+    if (strlen(src) > 3) {  //Cerco la destinazione
+
+        hashedDest = hash64(dest[1]) * 64 + hash64(dest[2]);
+
+        for (unsigned int a = 0; a < entHashTable[hashedDest].entNumber; a++) {
+
+            if (strcmp(entHashTable[hashedDest].entEntries[a].entName, src) == 0) {
+
+                destFound = true;
+                break;
+
+            }
+        }
+
+
+    } else {
+
+        for (unsigned int a = 0; a < entHashTable[4096].entNumber; a++) {
+
+            if (strcmp(entHashTable[4096].entEntries[a].entName), src) {
+
+                destFound = true;
+                break;
+            }
+        }
+    }
+
+
+    //Verifico di averle trovate entrambe e procedo a verificare al relazione, oppure termino e non faccio nulla.
+
 
 
 
