@@ -162,7 +162,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     int hashedSrc;
     int hashedDest;
     int tableIndex;
-    bool found = false;
+    bool srcFound = false;
+    bool destFound = false;
 
 
     scanf("%ms", &src);
@@ -172,6 +173,32 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     //Per prima cosa verifico che le due entità esistano nella EntTable
 
 
+    if (strlen(src) > 3) {  //Cerco la sorgente
+
+        hashedSrc = hash64(src[1]) * 64 + hash64(src[2]);
+
+        for (unsigned int a = 0; a < entHashTable[hashedSrc].entNumber; a++) {
+
+            if (strcmp(entHashTable[hashedSrc].entEntries[a].entName, src) == 0) {
+
+                srcFound = true;
+                break;
+
+            }
+        }
+
+
+    } else {
+
+        for (unsigned int a = 0; a < entHashTable[4096].entNumber; a++) {
+
+            if (strcmp(entHashTable[4096].entEntries[a].entName), src) {
+
+                srcFound = true;
+                break;
+            }
+        }
+    }
 
 
 
@@ -180,7 +207,10 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 
 
-    //Se le due entità esistono, procedo ed hasho la relazione per cercare se già esiste e se gia collega le due entità
+
+
+
+    //Se le due entità esistono
 
 
     if (strlen(inputRel) > 3) {
@@ -249,40 +279,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int *FindInTable(bool isEntity, char *string1, char *string2, struct EntTable *ents, struct RelTable *rels) {
 
-    int hashedEntity;
-
-
-    if (isEntity) {
-
-        if (strlen(string1) > 3) {
-
-            hashedEntity = hash64(string1[1]) * 64 + hash64(string1[2]);
-
-        } else {
-
-            hashedEntity = 4096;
-
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
-
-
-}
 
 
 
