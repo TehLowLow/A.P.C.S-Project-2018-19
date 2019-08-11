@@ -22,7 +22,7 @@ struct PlainEnt {
 
     char *entName; //Nome dell' entità
 
-    int *relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
+    int *relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta TODO 2
 };
 
 
@@ -98,7 +98,6 @@ struct RelTable *initRelHash() {
 void HashInputEnt(struct EntTable *hashTable) {
 
     char *inputEnt = NULL;
-    unsigned int length;
     int tableIndex;
     bool found = false;
 
@@ -233,7 +232,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     }
 
 
-    //Verifico di averle trovate entrambe e procedo a verificare al relazione, oppure termino e non faccio nulla.
+    //Ho trovato entrambe, proseguo. Se non trovo entrambe non faccio nulla.
 
     if (srcFound && destFound) {
 
@@ -246,6 +245,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
             tableIndex = 4096;
         }
 
+        //Con l' hash di dove dovrebbe collocarsi questa relazione, verifico se effettivamente è gia stata caricata.
 
         for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
 
@@ -254,7 +254,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                 //L'ho trovata, verifico se ha gia delle coppie oppure se questa è la prima
 
                 if (relHashTable[tableIndex].relEntries[a].binded ==
-                    NULL) {  //TODO ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
+                    NULL) {//Se questa coppia è la prima, alloco e aggiungo in testa.         //TODO 1
 
                     unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber++;
 
@@ -264,74 +264,30 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                 } else {
 
-                    //L'ho trovata e ho gia gente legata in binded. Incremento di uno il contatore, rialloco e in fondo
-                    //ci metto la nuova coppia
-
-
-
-
+                    //C'è gia gente allocata, devo verificare che questa coppia non esista ancora per quella relazione,
+                    // altrimenti non faccio nulla.                       TODO 2
 
 
 
 
                 }
-            } else { //Non l ho trovata, devo aggiungerla riallocando
+            } else { //Non l ho trovata, devo aggiungerla riallocando le plainrel.
 
-
-
-
-
+                //Devo pensare a come fare un inserimento ordinato btw. Una volta riallocato l' array e inserita in ordine la
+                //relazione, inserisco la coppia, che sicuramente è la prima.
             }
         }
     }
 
-
-
-
-
-
-
-
-    //Cerco se la relazione esiste gia, se non esiste (per ora) la aggiungo in coda.
-
-    for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
-
-        if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
-
-            relFound = true;
-            break;
-
-
-        }
-    }
-
-    //Non la trovo, la aggiungo.
-
-    if (!found) {
-
-
-
-
-        //Bla bla e poi return
-
-    }
-
-
-
-
-
-
-
-
-
-//La trovo, devo controllare le sue entità collegate e se trovo una relazione uguale non faccio nulla.
-
-
-
-
-
-    //Non trovo una relazione uguale, la aggiungo in coda.
 }
+
+
+
+
+
+
+
+
 
 
 
@@ -480,4 +436,13 @@ int main() {
 
 }
 
-//TODO cercare come mai usavo static inline nelle funzioni.
+/* TODO
+ *        cercare come mai usavo static inline nelle funzioni.
+ *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
+ *      2 L array di keys è inutile tenerlo di int, è più comodo risparmiare tempo a discapito dello spazio e salvare ptr alla relation in cui
+ *        è contenuta l' entità monitorata. Diventa pericoloso in termini di spazio, ma sicuramente non dover fare continue scansioni della
+ *        hash è conveniente in termini di tempo.
+ *
+ *
+ *
+ */
