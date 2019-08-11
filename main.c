@@ -38,15 +38,17 @@ struct PlainRel {
 
     char *relName; //Nome della relazione hashata sotto questo indice
 
+    unsigned int cplNumber; //Numero di elementi(a coppie) presenti nell' array binded
+
     struct Couples *binded;  //Array di coppie di entità collegate dalla relazione
 };
 
 
 struct Couples {  //coppia sorgente destinazione collegata da una relazione
 
-    char **source;
+    struct PlainEnt *source;
 
-    char **destination;
+    struct PlainEnt *destination;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -141,9 +143,7 @@ void HashInputEnt(struct EntTable *hashTable) {
         hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
                                                    hashTable[tableIndex].entNumber * sizeof(struct PlainEnt));
 
-
         hashTable[tableIndex].entEntries[temp - 1].entName = malloc(1); //cerco un indirizzo per la stringa.
-
         strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
 
     }
@@ -159,11 +159,14 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     char *src;
     char *dest;
     char *inputRel;
-    int hashedSrc;
-    int hashedDest;
-    int tableIndex;
+    struct PlainEnt *srcPtr = NULL;
+    struct PlainEnt *destPtr = NULL;
+    int hashedSrc = 0;
+    int hashedDest = 0;
+    int tableIndex = 0;
     bool srcFound = false;
     bool destFound = false;
+    bool relFound = false;
 
 
     scanf("%ms", &src);
@@ -182,51 +185,49 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
             if (strcmp(entHashTable[hashedSrc].entEntries[a].entName, src) == 0) {
 
                 srcFound = true;
+                srcPtr = &(entHashTable[hashedSrc].entEntries[a]);
                 break;
-
             }
         }
-
 
     } else {
 
         for (unsigned int a = 0; a < entHashTable[4096].entNumber; a++) {
 
-            if (strcmp(entHashTable[4096].entEntries[a].entName), src) {
+            if (strcmp(entHashTable[4096].entEntries[a].entName, src) == 0) {
 
                 srcFound = true;
+                srcPtr = &(entHashTable[4096].entEntries[a]);
                 break;
             }
         }
     }
 
+    if (srcFound) { //Se non trovo la sorgente è inutile cercare la dest, tanto poi scarterei il comando
 
+        if (strlen(dest) > 3) {  //Cerco la destinazione
 
+            hashedDest = hash64(dest[1]) * 64 + hash64(dest[2]);
 
+            for (unsigned int a = 0; a < entHashTable[hashedDest].entNumber; a++) {
 
-    if (strlen(src) > 3) {  //Cerco la destinazione
+                if (strcmp(entHashTable[hashedDest].entEntries[a].entName, src) == 0) {
 
-        hashedDest = hash64(dest[1]) * 64 + hash64(dest[2]);
-
-        for (unsigned int a = 0; a < entHashTable[hashedDest].entNumber; a++) {
-
-            if (strcmp(entHashTable[hashedDest].entEntries[a].entName, src) == 0) {
-
-                destFound = true;
-                break;
-
+                    destFound = true;
+                    destPtr = &(entHashTable[hashedDest].entEntries[a]);
+                    break;
+                }
             }
-        }
+        } else {
 
+            for (unsigned int a = 0; a < entHashTable[4096].entNumber; a++) {
 
-    } else {
+                if (strcmp(entHashTable[4096].entEntries[a].entName, src) == 0) {
 
-        for (unsigned int a = 0; a < entHashTable[4096].entNumber; a++) {
-
-            if (strcmp(entHashTable[4096].entEntries[a].entName), src) {
-
-                destFound = true;
-                break;
+                    destFound = true;
+                    destPtr = &(entHashTable[4096].entEntries[a]);
+                    break;
+                }
             }
         }
     }
@@ -234,24 +235,61 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
     //Verifico di averle trovate entrambe e procedo a verificare al relazione, oppure termino e non faccio nulla.
 
+    if (srcFound && destFound) {
+
+        if (strlen(inputRel) > 3) {
+
+            tableIndex = hash64(inputRel[1]) * 64 + hash64(inputRel[2]);
+
+        } else {
+
+            tableIndex = 4096;
+        }
+
+
+        for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
+
+            if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
+
+                //L'ho trovata, verifico se ha gia delle coppie oppure se questa è la prima
+
+                if (relHashTable[tableIndex].relEntries[a].binded ==
+                    NULL) {  //TODO ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
+
+                    unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber++;
+
+                    relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
+                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcPtr;
+                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destPtr;
+
+                } else {
+
+                    //L'ho trovata e ho gia gente legata in binded. Incremento di uno il contatore, rialloco e in fondo
+                    //ci metto la nuova coppia
 
 
 
 
 
 
-    //Se le due entità esistono
 
 
-    if (strlen(inputRel) > 3) {
+                }
+            } else { //Non l ho trovata, devo aggiungerla riallocando
 
-        tableIndex = hash64(inputRel[1]) * 64 + hash64(inputRel[2]);
 
-    } else {
 
-        tableIndex = 4096;
 
+
+            }
+        }
     }
+
+
+
+
+
+
 
 
     //Cerco se la relazione esiste gia, se non esiste (per ora) la aggiungo in coda.
@@ -260,7 +298,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
 
-            found = true;
+            relFound = true;
             break;
 
 
