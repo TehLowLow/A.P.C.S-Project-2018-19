@@ -247,60 +247,66 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         //Con l' hash di dove dovrebbe collocarsi questa relazione, verifico se effettivamente è gia stata caricata.
 
-        for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
+        for (unsigned int a = 0;
+             a < relHashTable[tableIndex].relNumber; a++) { // a è l' indice di relazione nell' array della hash
 
             if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
-
                 //L'ho trovata, verifico se ha gia delle coppie oppure se questa è la prima
 
                 if (relHashTable[tableIndex].relEntries[a].binded ==
                     NULL) {//Se questa coppia è la prima, alloco e aggiungo in testa.         //TODO 1
 
-                    unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber++;
+                    relHashTable[tableIndex].relEntries[a].cplNumber++;
+
+                    unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber;
 
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
                     relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcPtr;
                     relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destPtr;
+
+                    //return
 
                 } else {
 
                     //C'è gia gente allocata, devo verificare che questa coppia non esista ancora per quella relazione,
                     // altrimenti non faccio nulla.                       TODO 2
 
+                    for (unsigned int b = 0; b < relHashTable[tableIndex].relEntries[a].cplNumber; b++) {
+                        // b è l' indice di coppia per verificare se la relazione gia esiste
 
+                        if (strcmp(relHashTable[tableIndex].relEntries[a].binded[b].source->entName, src) == 0 &&
+                            strcmp(relHashTable[tableIndex].relEntries[a].binded[b].destination->entName, dest) == 0) {
+
+                            //Esiste gia, ritorno
+                            return;
+
+                        }
+                    }
+
+                    //Non esiste, devo aggiungere in coda la coppia di entità. Incremento il numero di couples, rialloco l' array e assegno i puntatori source e dest alla nuova couple.
+
+                    relHashTable[tableIndex].relEntries[a].cplNumber++;
+
+                    unsigned int cplNumbTemp = relHashTable[tableIndex].relEntries[a].cplNumber;
+
+                    struct Couples *tempBind = realloc(relHashTable[tableIndex].relEntries[a].binded, cplNumbTemp);
+
+                    relHashTable[tableIndex].relEntries[a].binded = tempBind;
+
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source = srcPtr;
+
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destPtr;
 
 
                 }
-            } else { //Non l ho trovata, devo aggiungerla riallocando le plainrel.
 
-                //Devo pensare a come fare un inserimento ordinato btw. Una volta riallocato l' array e inserita in ordine la
-                //relazione, inserisco la coppia, che sicuramente è la prima.
             }
         }
+
+
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//TODO 3
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -311,8 +317,6 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
 
 //Questa funzione calcola l indice dell' array in cui inserire l' entità o la relazione. La chiave ritornata è calcolata
 //in base a una regola di riduzione dei caratteri validi in input da un indice base 64 a un indice decimale.
@@ -334,7 +338,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 //2 caratteri.
 
 
-inline int hash64(char input) {
+inline int hash64(char input) {    //Gioele     71  105
 
 
     int hashed = 0;
@@ -442,6 +446,7 @@ int main() {
  *      2 L array di keys è inutile tenerlo di int, è più comodo risparmiare tempo a discapito dello spazio e salvare ptr alla relation in cui
  *        è contenuta l' entità monitorata. Diventa pericoloso in termini di spazio, ma sicuramente non dover fare continue scansioni della
  *        hash è conveniente in termini di tempo.
+ *      3 Devo controllare di aver messo bene i return, perchè devo poter uscire dai for appena una condizione non è soddisfatta.
  *
  *
  *
