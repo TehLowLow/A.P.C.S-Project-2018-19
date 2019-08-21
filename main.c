@@ -260,8 +260,34 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
 
     }
-
 }
+
+/*Ordinamento Lessicografico
+ *
+ * Uso strcmp
+ *
+ * Entro nell' array e faccio strcmp della stringa in input con tutte le stringhe in memoria,al primo indice in cui
+ * ho minore scorrendo dall' inizio esco dal ciclo e so che devo infilarla li.
+ *
+ *
+ * Funzionamento generale:
+ *
+ *
+ * leggo e salvo;
+ * entro nella tabella sotto l' hash che calcolo;
+ * scorro l' array dall' inizio facendo
+ *
+ *
+ * (for every_relation){
+ * if(strcmp(input, hashtable)<0){la parola va in quell' indice, return indice}}
+ *
+ *
+ * Non uso realloc, perchè mi copia anche i dati, ma devo pensare a una mia realloc, che copi i dati prima dell' indice
+ * uguali, all' indice inserisca la nuova relazione, e poi copi i dati successivi sfasati di un indice.
+ *
+ */
+
+
 //TODO 3
 //----------------------------------------------------------------------------------------------------------------------
 
