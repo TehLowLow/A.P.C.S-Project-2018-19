@@ -116,7 +116,7 @@ void HashInputEnt(struct EntTable *hashTable) {
 
     if (result == NULL) {
 
-        if (hashTable[tableIndex].entEntries == NULL) {
+        if (hashTable[tableIndex].entEntries == NULL) {  //TODO 1
 
             hashTable[tableIndex].entEntries = calloc(1, sizeof(struct PlainEnt));
 
@@ -157,6 +157,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     struct PlainEnt *srcFound = NULL;
     struct PlainEnt *destFound = NULL;
     struct PlainEnt *relFound = NULL;
+    unsigned int ordered;
 
     //Leggo i parametri del comando
 
@@ -219,7 +220,9 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcPtr;
                     relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destPtr;
 
-                    //return
+                    //TODO 5
+
+                    return;
 
                 } else {
 
@@ -252,15 +255,79 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destPtr;
 
+                    //TODO 5
+
+                    return;
+
                 }
 
 
             }
         }
 
+        //Qua devo invece aggiungere la nuova relazione che non ho mai incontrato, e la aggiungo gia in ordine
+
+
+
+        if (relHashTable[tableIndex].relNumber == 0) {
+
+            // Se la table è vuota inserisco subito in testa, e aggiungo le due entità
+
+            relHashTable[tableIndex].relNumber++;
+
+            relHashTable[tableIndex].relEntries = calloc(1,
+                                                         sizeof(struct PlainRel));  //Alloco la prima cella di entries e la nomino
+
+            strcpy(relHashTable[tableIndex].relEntries[0].relName, inputRel);
+
+            relHashTable[tableIndex].relEntries[0].cplNumber++;
+
+            relHashTable[tableIndex].relEntries[0].binded = calloc(1,
+                                                                   sizeof(struct Couples)); // Alloco la prima cella di Coppie e le assegno
+
+            relHashTable[tableIndex].relEntries[0].binded[0].source = srcPtr;
+
+            relHashTable[tableIndex].relEntries[0].binded[0].destination = destPtr;
+
+            //TODO 5
+
+            return;
+
+        }
+
+        //Se la table non è vuota, devo cercare l' indice
+
+        ordered = 0;
+
+        for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
+
+            ordered = a;
+
+            if (strcmp(inputRel, relHashTable[tableIndex].relEntries[a].relName) < 0) {
+
+                break;
+
+            }
+
+        }
+
+
+        //ordered ora contiene l' indice di dove devo piazzare la nuova relazione, devo riallocare
+
+        relHashTable[tableIndex].relNumber++;
+
+        struct PlainRel *buffer = calloc(relHashTable[tableIndex].relNumber, sizeof(struct PlainRel));
+
+
+        return;
+
 
     }
+
+
 }
+
+
 
 /*Ordinamento Lessicografico
  *
@@ -472,6 +539,7 @@ int main() {
  *      3 Devo controllare di aver messo bene i return, perchè devo poter uscire dai for appena una condizione non è soddisfatta.
  *      4 Qua scansiono l'array di entità per vedere se trovo l' entità, ma dovrei controllare prima che ci sia, perchè se ancora non è inizializzato sarà null
  *        La condizione del for potrebbe salvarmi, perchè se entNumber è zero, esco subito dal for e sto a posto.
+ *      5 Aggiungere il backtracking
  *
  *
  *
