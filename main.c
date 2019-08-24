@@ -334,9 +334,10 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         bufferCounter = ordered; //Inserisco la nuova struct. La copia è identica a quella scritta sopra e a quella successiva.
 
-        strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter].relName);
-        buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber;
-        buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded;
+        strcpy(buffer[bufferCounter].relName, inputRel);
+        buffer[bufferCounter].cplNumber = 1;
+        buffer[bufferCounter].binded = calloc(1, sizeof(struct Couples));
+
 
         bufferCounter++;
 
@@ -355,9 +356,12 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         relHashTable[tableIndex].relEntries = buffer;  //Gli assegno il ptr del nuovo array ordinato
 
+        //Ci aggiungo la nuova relazione
+
+        relHashTable[tableIndex].relEntries[ordered].binded[0].source = srcPtr;
+        relHashTable[tableIndex].relEntries[ordered].binded[0].destination = destPtr;
+
         return;
-
-
     }
 }
 
@@ -424,6 +428,7 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
         } else {//Chiama la funzione che aggiunge una relazione alla hash
 
+            HashInputRel(relTable, entTable);
 
 
             if (DEBUG) { printf("%s", inCommand); }
@@ -561,6 +566,13 @@ int main() {
     struct EntTable *entitiesHash = initEntHash();
     struct RelTable *relationHash = initRelHash();
 
+    while (ParseTxt(entitiesHash, relationHash)) {
+
+        //continue;
+
+    }
+
+    printf("FINITO");
 
 }
 
