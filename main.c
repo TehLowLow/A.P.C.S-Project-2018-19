@@ -158,6 +158,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     struct PlainEnt *destFound = NULL;
     struct PlainEnt *relFound = NULL;
     unsigned int ordered;
+    unsigned int bufferCounter;
 
     //Leggo i parametri del comando
 
@@ -318,13 +319,46 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         struct PlainRel *buffer = calloc(relHashTable[tableIndex].relNumber, sizeof(struct PlainRel));
 
+        bufferCounter = 0;
+
+        while (bufferCounter < ordered) { //Copio tutti quelli prima del posto in cui inserire la nuova struct
+
+            strcpy(buffer[bufferCounter].relName,
+                   relHashTable[tableIndex].relEntries[bufferCounter].relName);  //Copio il nome
+            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber; //Copio il numero di coppie
+            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded; //Copio il ptr all' array di coppie
+
+            bufferCounter++; //Incremento e ripeto
+
+        }
+
+        bufferCounter = ordered; //Inserisco la nuova struct. La copia è identica a quella scritta sopra e a quella successiva.
+
+        strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter].relName);
+        buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber;
+        buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded;
+
+        bufferCounter++;
+
+        while (bufferCounter < relHashTable[tableIndex].relNumber) { //Copio tutti i successivi
+
+            strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter].relName);
+            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber;
+            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded;
+
+            bufferCounter++;
+
+
+        }
+
+        free(relHashTable[tableIndex].relEntries); //Libero il vecchio array precedente all' inserimento
+
+        relHashTable[tableIndex].relEntries = buffer;  //Gli assegno il ptr del nuovo array ordinato
 
         return;
 
 
     }
-
-
 }
 
 
