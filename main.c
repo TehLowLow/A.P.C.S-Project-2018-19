@@ -85,7 +85,7 @@ struct RelTable *initRelHash() {
 
     struct RelTable *hash = NULL;
 
-    hash = calloc(4097, sizeof(struct RelTable));
+    hash = malloc(4097 * sizeof(struct RelTable));
 
     return hash;
 
@@ -149,8 +149,6 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
     char *src;
     char *dest;
     char *inputRel;
-    struct PlainEnt *srcPtr = NULL;
-    struct PlainEnt *destPtr = NULL;
     int hashedSrc = 0;
     int hashedDest = 0;
     int tableIndex = 0;
@@ -218,8 +216,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber;
 
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
-                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcPtr;
-                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destPtr;
+                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcFound;
+                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destFound;
 
                     //TODO 5
 
@@ -248,13 +246,13 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     unsigned int cplNumbTemp = relHashTable[tableIndex].relEntries[a].cplNumber;
 
-                    struct Couples *tempBind = realloc(relHashTable[tableIndex].relEntries[a].binded, cplNumbTemp);
+                    struct Couples *tempBind = realloc(relHashTable[tableIndex].relEntries[a].binded, relHashTable[tableIndex].relEntries[a].cplNumber);
 
                     relHashTable[tableIndex].relEntries[a].binded = tempBind;
 
-                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source = srcPtr;
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source = srcFound;
 
-                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destPtr;
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destFound;
 
                     //TODO 5
 
@@ -276,8 +274,12 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
             relHashTable[tableIndex].relNumber++;
 
-            relHashTable[tableIndex].relEntries = calloc(1,
+            relHashTable[tableIndex].relEntries = malloc(1);
+
+            relHashTable[tableIndex].relEntries = calloc(relHashTable[tableIndex].relNumber,
                                                          sizeof(struct PlainRel));  //Alloco la prima cella di entries e la nomino
+
+            relHashTable[tableIndex].relEntries[0].relName = malloc(1);
 
             strcpy(relHashTable[tableIndex].relEntries[0].relName, inputRel);
 
@@ -286,9 +288,9 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
             relHashTable[tableIndex].relEntries[0].binded = calloc(1,
                                                                    sizeof(struct Couples)); // Alloco la prima cella di Coppie e le assegno
 
-            relHashTable[tableIndex].relEntries[0].binded[0].source = srcPtr;
+            relHashTable[tableIndex].relEntries[0].binded[0].source = srcFound;
 
-            relHashTable[tableIndex].relEntries[0].binded[0].destination = destPtr;
+            relHashTable[tableIndex].relEntries[0].binded[0].destination = destFound;
 
             //TODO 5
 
@@ -358,8 +360,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         //Ci aggiungo la nuova relazione
 
-        relHashTable[tableIndex].relEntries[ordered].binded[0].source = srcPtr;
-        relHashTable[tableIndex].relEntries[ordered].binded[0].destination = destPtr;
+        relHashTable[tableIndex].relEntries[ordered].binded[0].source = srcFound;
+        relHashTable[tableIndex].relEntries[ordered].binded[0].destination = destFound;
 
         return;
     }
@@ -578,6 +580,8 @@ int main() {
 
 /* TODO
  *        cercare come mai usavo static inline nelle funzioni.
+ *        Cercare in tutto il programma dove eseguo delle strcpy senza prima inizializzare la stringa.
+ *        Problemi con gli indci dei binded e degli array, rileggere il codice tutto in generale.
  *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
  *      2 L array di keys è inutile tenerlo di int, è più comodo risparmiare tempo a discapito dello spazio e salvare ptr alla relation in cui
  *        è contenuta l' entità monitorata. Diventa pericoloso in termini di spazio, ma sicuramente non dover fare continue scansioni della
