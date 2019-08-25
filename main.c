@@ -22,7 +22,7 @@ struct PlainEnt {
 
     char *entName; //Nome dell' entità
 
-    int *relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta TODO 2
+    struct PlainRel **relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
 };
 
 
