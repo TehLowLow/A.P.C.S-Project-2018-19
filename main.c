@@ -481,7 +481,8 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                         entBuffer = realloc(entBuffer, bufferCounter * sizeof(struct PlainEnt *));
 
-                        entBuffer[bufferCounter - 1] = relHash[index].relEntries[a].binded[c].destination;
+                        entBuffer[bufferCounter -
+                                  1] = relHash[index].relEntries[a].binded[c].destination; //Aggiunta in coda
 
 
                     }
@@ -492,7 +493,7 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
                 //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
                 //resettare a zero tutti i counter nella tabella.
 
-                printf("%s", relHash[index].relEntries[a].relName);
+                printf("%s", relHash[index].relEntries[a].relName); //Stampa nome relazione
                 printf(" ");
 
                 /*for (unsigned int d = 0; d < bufferCounter; d++) {
@@ -509,8 +510,7 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                 PrintArray(entBuffer, bufferCounter);
 
-
-                printf("%d", entBuffer[0]->destCounter);
+                printf("%d", entBuffer[0]->destCounter);  //Stampo il max ricevente
 
                 printf("\n");
 
@@ -681,7 +681,7 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 
 void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
-    struct PlainEnt **buffer = calloc(2, sizeof(struct PlainEnt *));
+    struct PlainEnt **buffer = calloc(1, sizeof(struct PlainEnt *));
 
     unsigned int bufferCounter = 1;
 
@@ -689,42 +689,44 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
     buffer[0] = array[0];  //Di base il primo el lo copio, poi li riordino.
 
-    if (arrayCounter == 2) {
+    if (arrayCounter == 2) { //Se l' array è lungo 2 per evitare overflow killer alloco manualmente in testa o in coda
 
         bufferCounter = 2;
+
+        buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
 
         if (strcmp(array[1]->entName, buffer[0]->entName) < 0) {
 
             buffer[1] = buffer[0];
             buffer[0] = array[1];
 
-        }else if(strcmp(array[1]->entName, buffer[0]->entName) == 0){
+        } else if (strcmp(array[1]->entName, buffer[0]->entName) == 0) {
 
             bufferCounter = 1;
 
-        }else{
+        } else { //Caso specifico, se l' array è lungo due ma sono uguali skippa
 
             buffer[1] = array[1];
-
-
         }
-    }else {
+    } else {
 
-        for (unsigned int a = 1; a < arrayCounter; a++) {  //TODO rotto questo ramo else
+        for (unsigned int a = 1; a <
+                                 arrayCounter; a++) {//Per tutti gli elementi in input (array di max con doppioni)  //TODO rotto questo ramo else
 
-            for (unsigned int i = 0; i < bufferCounter; i++) {
+            for (unsigned int i = 0; i < bufferCounter; i++) { //Ciclo su ogni elemento ordinato
 
-                if (strcmp(array[a]->entName, buffer[i]->entName) < 0) {
+                unsigned int order = i;
 
-                    //Ho trovato l' indice, inserisco la
+                if (strcmp(array[a]->entName, buffer[i]->entName) < 0) { //Se array[a] viene prima di buffer
+
+                    //Ho trovato l' indice, inserisco l entità
 
                     bufferCounter++;
 
-                    buffer = realloc(buffer, bufferCounter * sizeof(struct Plainrel **));
+                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
 
-                    unsigned int order = i;
-
-                    for (unsigned int j = bufferCounter - 2; j > order; j--) {
+                    for (unsigned int j = bufferCounter - 2; j >
+                                                             order; j--) { //Rialloco, sposto tutti di una casella in avanti e nel posto "order" ci metto il nuovo elemento
 
 
                         buffer[j + 1] = buffer[j];
@@ -735,22 +737,30 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
                     buffer[order] = array[a];
                     break;
 
-                } else if (strcmp(array[a]->entName, buffer[i]->entName) == 0) {
+
+                } else if (strcmp(array[a]->entName, buffer[i]->entName) ==
+                           0) { //Se sono uguali skippo, rimuovo i doppioni
 
                     //è un doppione, skippo l' esecuzione
 
                     break;
 
 
-                } else if(strcmp(array[a]->entName, buffer[i]->entName)>0) {
+                }
+
+                //L' aggiunta in coda si fa solo se order == buffercounter-1
+
+                if (order == bufferCounter -
+                             1) { //Aggiunta in coda se non trovo un indice, ovvero l' elemento in ordine alfabetico viene dopo tutti
+
+                    //Aggiunta in coda
 
                     bufferCounter++;
 
-                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt **));
+                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
 
-                    array[a] = buffer[bufferCounter - 1];
+                    buffer[bufferCounter - 1] = array[a];
 
-                    break;
                 }
 
             }
@@ -760,7 +770,7 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
     }
 
-    for (unsigned int k = 0; k < bufferCounter; k++) {
+    for (unsigned int k = 0; k < bufferCounter; k++) {  //Stampa tutti i nomi
 
         printf("%s", buffer[k]->entName);
         printf(" ");
@@ -769,11 +779,6 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
 
 }
-
-
-
-
-
 
 
 //-----MAIN-------------------------------------------------------------------------------------------------------------
