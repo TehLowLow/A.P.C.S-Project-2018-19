@@ -492,7 +492,8 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
                 //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
                 //resettare a zero tutti i counter nella tabella.
 
-                printf("%s\n", relHash[index].relEntries[a].relName);
+                printf("%s", relHash[index].relEntries[a].relName);
+                printf(" ");
 
                 /*for (unsigned int d = 0; d < bufferCounter; d++) {
 
@@ -680,56 +681,82 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 
 void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
-    struct PlainEnt **buffer = calloc(1, sizeof(struct PlainEnt *));
+    struct PlainEnt **buffer = calloc(2, sizeof(struct PlainEnt *));
 
     unsigned int bufferCounter = 1;
 
     //Questa funzione riordina l' array e lo stampa su stdout
 
-    buffer[0] = array[0];
+    buffer[0] = array[0];  //Di base il primo el lo copio, poi li riordino.
 
-    for (unsigned int a = 1; a < arrayCounter; a++) {
+    if (arrayCounter == 2) {
 
-        for (unsigned int i = 0; i < bufferCounter; i++) {
+        bufferCounter = 2;
 
-            if (strcmp(array[a]->entName, buffer[i]->entName) < 0) {
+        if (strcmp(array[1]->entName, buffer[0]->entName) < 0) {
 
-                //Ho trovato l' indice, inserisco la
+            buffer[1] = buffer[0];
+            buffer[0] = array[1];
 
-                bufferCounter++;
+        }else if(strcmp(array[1]->entName, buffer[0]->entName) == 0){
 
-                buffer = realloc(buffer, bufferCounter * sizeof(struct Plainrel **));
+            bufferCounter = 1;
 
-                unsigned int order = i;
+        }else{
 
-                for (unsigned int j = bufferCounter - 2; j > order; j--) {
-
-
-                    buffer[j + 1] = buffer[j];
+            buffer[1] = array[1];
 
 
+        }
+    }else {
+
+        for (unsigned int a = 1; a < arrayCounter; a++) {  //TODO rotto questo ramo else
+
+            for (unsigned int i = 0; i < bufferCounter; i++) {
+
+                if (strcmp(array[a]->entName, buffer[i]->entName) < 0) {
+
+                    //Ho trovato l' indice, inserisco la
+
+                    bufferCounter++;
+
+                    buffer = realloc(buffer, bufferCounter * sizeof(struct Plainrel **));
+
+                    unsigned int order = i;
+
+                    for (unsigned int j = bufferCounter - 2; j > order; j--) {
+
+
+                        buffer[j + 1] = buffer[j];
+
+
+                    }
+
+                    buffer[order] = array[a];
+                    break;
+
+                } else if (strcmp(array[a]->entName, buffer[i]->entName) == 0) {
+
+                    //è un doppione, skippo l' esecuzione
+
+                    break;
+
+
+                } else if(strcmp(array[a]->entName, buffer[i]->entName)>0) {
+
+                    bufferCounter++;
+
+                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt **));
+
+                    array[a] = buffer[bufferCounter - 1];
+
+                    break;
                 }
-
-                buffer[order] = array[a];
-                break;
-
-            } else if (strcmp(array[a]->entName, buffer[i]->entName) == 0) {
-
-                //è un doppione, skippo l' esecuzione
-
-                break;
-
 
             }
 
+
         }
-
-        bufferCounter++;
-
-        buffer = realloc(buffer, bufferCounter* sizeof(struct PlainEnt**));
-
-        array[a] = buffer[bufferCounter-1];
-
 
     }
 
