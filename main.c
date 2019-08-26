@@ -359,11 +359,11 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         while (bufferCounter < relHashTable[tableIndex].relNumber) { //Copio tutti i successivi
 
-            strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter].relName);
-            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber;
-            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded;
+            strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter-1].relName);
+            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter-1].cplNumber;
+            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter-1].binded;
 
-            bufferCounter++;
+            bufferCounter++; //TODO Non ne dimentico uno?? SI, ne dimentico
 
 
         }
@@ -380,6 +380,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
         return;
     }
 }
+
+
 
 
 
@@ -685,83 +687,63 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
     unsigned int bufferCounter = 1;
 
-    //Questa funzione riordina l' array e lo stampa su stdout
-
-    buffer[0] = array[0];  //Di base il primo el lo copio, poi li riordino.
-
-    if (arrayCounter == 2) { //Se l' array è lungo 2 per evitare overflow killer alloco manualmente in testa o in coda
-
-        bufferCounter = 2;
-
-        buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
-
-        if (strcmp(array[1]->entName, buffer[0]->entName) < 0) {
-
-            buffer[1] = buffer[0];
-            buffer[0] = array[1];
-
-        } else if (strcmp(array[1]->entName, buffer[0]->entName) == 0) {
-
-            bufferCounter = 1;
-
-        } else { //Caso specifico, se l' array è lungo due ma sono uguali skippa
-
-            buffer[1] = array[1];
-        }
-    } else {
-
-        for (unsigned int a = 1; a <
-                                 arrayCounter; a++) {//Per tutti gli elementi in input (array di max con doppioni)  //TODO rotto questo ramo else
-
-            for (unsigned int i = 0; i < bufferCounter; i++) { //Ciclo su ogni elemento ordinato
-
-                unsigned int order = i;
-
-                if (strcmp(array[a]->entName, buffer[i]->entName) < 0) { //Se array[a] viene prima di buffer
-
-                    //Ho trovato l' indice, inserisco l entità
-
-                    bufferCounter++;
-
-                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
-
-                    for (unsigned int j = bufferCounter - 2; j >
-                                                             order; j--) { //Rialloco, sposto tutti di una casella in avanti e nel posto "order" ci metto il nuovo elemento
+    bool found = false;
 
 
-                        buffer[j + 1] = buffer[j];
+    buffer[0] = array[0];
 
+    if (arrayCounter > 1) {
 
-                    }
+        for (unsigned int a = 1; a < arrayCounter; a++) {
 
-                    buffer[order] = array[a];
-                    break;
+            unsigned int order = 0;
+            found = false;
 
+            for (unsigned int b = 0; b < bufferCounter; b++) {
 
-                } else if (strcmp(array[a]->entName, buffer[i]->entName) ==
-                           0) { //Se sono uguali skippo, rimuovo i doppioni
+                order = b;
 
-                    //è un doppione, skippo l' esecuzione
+                if (strcmp(array[a]->entName, buffer[b]->entName) < 0) {
 
                     break;
 
+                } else if (strcmp(array[a]->entName, buffer[b]->entName) == 0) {
+
+                    found = true;
+                    break;
 
                 }
 
-                //L' aggiunta in coda si fa solo se order == buffercounter-1
 
-                if (order == bufferCounter -
-                             1) { //Aggiunta in coda se non trovo un indice, ovvero l' elemento in ordine alfabetico viene dopo tutti
+            }
 
-                    //Aggiunta in coda
+            if (found == false) {
 
-                    bufferCounter++;
+                bufferCounter++;
 
-                    buffer = realloc(buffer, bufferCounter * sizeof(struct PlainEnt *));
+                struct PlainEnt **temp = calloc(bufferCounter, sizeof(struct PlainEnt *));
 
-                    buffer[bufferCounter - 1] = array[a];
+                unsigned int i = 0;
+
+                while (i < order) {
+
+                    temp[i] = buffer[i];
+                    i++;
 
                 }
+
+                temp[order] = array[a];
+
+                i = order + 1;
+
+                while (i < bufferCounter) {
+
+                    temp[i] =buffer[i-1];
+                    i++;
+                }
+
+                free(buffer);
+                buffer = temp;
 
             }
 
@@ -770,12 +752,15 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
     }
 
-    for (unsigned int k = 0; k < bufferCounter; k++) {  //Stampa tutti i nomi
+    for (unsigned int j = 0; j < bufferCounter ; j++) {
 
-        printf("%s", buffer[k]->entName);
+        printf("%s", buffer[j]->entName);
         printf(" ");
 
     }
+
+
+
 
 
 }
