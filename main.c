@@ -85,7 +85,7 @@ struct RelTable *initRelHash() {
 
     struct RelTable *hash = NULL;
 
-    hash = malloc(4097 * sizeof(struct RelTable));
+    hash = calloc(4097, sizeof(struct RelTable));
 
     return hash;
 
@@ -114,29 +114,37 @@ void HashInputEnt(struct EntTable *hashTable) {
 
     result = EntityLookup(inputEnt, tableIndex, hashTable);
 
-    if (result == NULL) {
+    if (result == NULL) { //Se la tabella hash non ha ancora entità hashate con quella chiave, alloco
 
         if (hashTable[tableIndex].entEntries == NULL) {  //TODO 1
 
+            hashTable[tableIndex].entNumber = 1;
+
             hashTable[tableIndex].entEntries = calloc(1, sizeof(struct PlainEnt));
 
-            //Se la tabella hash non ha ancora entità hashate con quella chiave, alloco
+            hashTable[tableIndex].entEntries[0].entName = malloc(1);
+
+            strcpy(hashTable[tableIndex].entEntries[0].entName, inputEnt);
+
+
+        } else {
+
+            hashTable[tableIndex].entNumber++;
+
+            unsigned int temp = hashTable[tableIndex].entNumber;
+
+            //Aggiungo una casella in cui salvare l' entità e la aggiungo
+
+            hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
+                                                       temp * sizeof(struct PlainEnt));
+
+
+            hashTable[tableIndex].entEntries[temp - 1].entName = malloc(
+                    strlen(inputEnt)); //cerco un indirizzo per la stringa. Segfaulta altrimenti
+
+            strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
+
         }
-
-        hashTable[tableIndex].entNumber++;
-
-        unsigned int temp = hashTable[tableIndex].entNumber;
-
-        //Aggiungo una casella in cui salvare l' entità e la aggiungo
-
-        hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
-                                                   temp * sizeof(struct PlainEnt));
-
-        hashTable[tableIndex].entEntries[temp - 1].entName = malloc(
-                1); //cerco un indirizzo per la stringa. Segfaulta altrimenti
-
-        strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
-
     }
 }
 //----------------------------------------------------------------------------------------------------------------------
@@ -211,13 +219,13 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                 if (relHashTable[tableIndex].relEntries[a].binded ==
                     NULL) {//Se questa coppia è la prima, alloco e aggiungo in testa.         //TODO 1
 
-                    relHashTable[tableIndex].relEntries[a].cplNumber++;
+                    relHashTable[tableIndex].relEntries[a].cplNumber = 1;
 
                     unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber;
 
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
-                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].source = srcFound;
-                    relHashTable[tableIndex].relEntries[a].binded[cplIndex - 1].destination = destFound;
+                    relHashTable[tableIndex].relEntries[a].binded[0].source = srcFound;
+                    relHashTable[tableIndex].relEntries[a].binded[0].destination = destFound;
 
                     //TODO 5
 
@@ -246,7 +254,9 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     unsigned int cplNumbTemp = relHashTable[tableIndex].relEntries[a].cplNumber;
 
-                    struct Couples *tempBind = realloc(relHashTable[tableIndex].relEntries[a].binded, relHashTable[tableIndex].relEntries[a].cplNumber);
+                    struct Couples *tempBind = realloc(relHashTable[tableIndex].relEntries[a].binded,
+                                                       relHashTable[tableIndex].relEntries[a].cplNumber *
+                                                       sizeof(struct PlainRel));
 
                     relHashTable[tableIndex].relEntries[a].binded = tempBind;
 
@@ -405,6 +415,11 @@ void DeleteEnt() {};
 void DeleteRel() {};
 
 //----------------------------------------------------------------------------------------------------------------------
+
+//Il report deve scorrere tutta la tabella hash, e stampare tutte le relazioni che hanno almeno una coppia
+
+
+
 
 void Report();
 
@@ -565,6 +580,7 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 
 int main() {
 
+
     struct EntTable *entitiesHash = initEntHash();
     struct RelTable *relationHash = initRelHash();
 
@@ -582,6 +598,7 @@ int main() {
  *        cercare come mai usavo static inline nelle funzioni.
  *        Cercare in tutto il programma dove eseguo delle strcpy senza prima inizializzare la stringa.
  *        Problemi con gli indci dei binded e degli array, rileggere il codice tutto in generale.
+ *        Minor Improvement: Rimuovere in memoria i " " che comunque occupano due byte per ogni entry (poca roba ma magari...)
  *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
  *      2 L array di keys è inutile tenerlo di int, è più comodo risparmiare tempo a discapito dello spazio e salvare ptr alla relation in cui
  *        è contenuta l' entità monitorata. Diventa pericoloso in termini di spazio, ma sicuramente non dover fare continue scansioni della
