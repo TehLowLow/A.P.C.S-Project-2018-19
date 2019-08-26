@@ -359,11 +359,11 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         while (bufferCounter < relHashTable[tableIndex].relNumber) { //Copio tutti i successivi
 
-            strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter-1].relName);
-            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter-1].cplNumber;
-            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter-1].binded;
+            strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter - 1].relName);
+            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter - 1].cplNumber;
+            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter - 1].binded;
 
-            bufferCounter++; //TODO Non ne dimentico uno?? SI, ne dimentico
+            bufferCounter++;
 
 
         }
@@ -689,56 +689,59 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
     bool found = false;
 
+    buffer[0] = array[0];  //Inserisco di base il primo elemento come pivot
 
-    buffer[0] = array[0];
+    if (arrayCounter > 1) { //Se l' array non è unitario
 
-    if (arrayCounter > 1) {
-
-        for (unsigned int a = 1; a < arrayCounter; a++) {
+        for (unsigned int a = 1; a < arrayCounter; a++) { //Per ogni elemento dell' array
 
             unsigned int order = 0;
             found = false;
 
-            for (unsigned int b = 0; b < bufferCounter; b++) {
+            for (unsigned int b = 0; b < bufferCounter; b++) { //Cerco un ordine di inserimento nel buffer
 
                 order = b;
 
-                if (strcmp(array[a]->entName, buffer[b]->entName) < 0) {
-
-                    break;
-
-                } else if (strcmp(array[a]->entName, buffer[b]->entName) == 0) {
+                if (strcmp(array[a]->entName, buffer[b]->entName) ==
+                    0) {//A meno che non sia un doppione, in quel caso non faccio nulla
 
                     found = true;
                     break;
 
+                    //TODO problema: Se io ho un array fatto come ad esempio nel caso 1.2 di test Airiam, Ayala, Airiam, //
+                    //la seconda volta che compare Airiam mi si frega tutto, perche breakka come se fosse da ordinare
+
+                } else if (strcmp(array[a]->entName, buffer[b]->entName) < 0) {
+
+                    break;
                 }
 
 
             }
 
-            if (found == false) {
+            if (found == false) { //Se non trovo doppioni
 
                 bufferCounter++;
 
-                struct PlainEnt **temp = calloc(bufferCounter, sizeof(struct PlainEnt *));
+                struct PlainEnt **temp = calloc(bufferCounter,
+                                                sizeof(struct PlainEnt *)); //Alloco un vettore temporaneo
 
                 unsigned int i = 0;
 
-                while (i < order) {
+                while (i < order) { //Copio gli elementi in ordine
 
                     temp[i] = buffer[i];
                     i++;
 
                 }
 
-                temp[order] = array[a];
+                temp[order] = array[a]; //Aggiungo il nuovo elemento
 
                 i = order + 1;
 
-                while (i < bufferCounter) {
+                while (i < bufferCounter) { //Copio gli elementi rimanenti dopo il nuovo
 
-                    temp[i] =buffer[i-1];
+                    temp[i] = buffer[i - 1];
                     i++;
                 }
 
@@ -746,23 +749,16 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
                 buffer = temp;
 
             }
-
-
         }
 
     }
 
-    for (unsigned int j = 0; j < bufferCounter ; j++) {
+    for (unsigned int j = 0; j < bufferCounter; j++) { //Stampo tutti i nomi
 
         printf("%s", buffer[j]->entName);
         printf(" ");
 
     }
-
-
-
-
-
 }
 
 
