@@ -22,6 +22,8 @@ struct PlainEnt {
 
     char *entName; //Nome dell' entità
 
+    unsigned int destCounter; //Int per il conteggio di sorgenti nel report.
+
     struct PlainRel **relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
 };
 
@@ -423,7 +425,7 @@ void DeleteRel() {};
 // e salvo tutti coloro che come indice han quel valore e nel mentre resetto tutti gli indici a zero
 
 //Complessità spaziale: un unsigned int per ogni entità
-//Complessità temporale = O(3n)
+//Complessità temporale = Theta(3n)
 
 //Si potrebbe fare meglio in tempo, ma in spazio è praticamente minimo, perche si tratta di un byte per ogni diverso destinatario, e un array con
 // k elementi = numero di destinatari con valore max di sorgenti.
@@ -431,7 +433,93 @@ void DeleteRel() {};
 
 
 
-void Report();
+void Report(struct RelTable *relHash, struct EntTable *entHash) {
+
+    struct PlainEnt **entBuffer = malloc(1 * sizeof(struct PlainEnt *));
+    unsigned int bufferCounter = 0; //Dimensione dell'array
+
+
+    for (int index = 0; index < 4097; index++) { //Per ogni chiave della hash
+
+        if (relHash[index].relNumber != 0) { //Se la chiave corrisponde a delle relazioni
+
+            for (unsigned int a = 0; a < relHash[index].relNumber; a++) {//Per ogni relazione di quella chiave
+
+                for (unsigned int b = 0; b <
+                                         relHash[index].relEntries[a].cplNumber; b++) {//Per ogni coppia, entro in dest e incremento il suo destCounter
+
+                    relHash[index].relEntries[a].binded[b].destination->destCounter++;
+
+                }
+
+                bufferCounter = 1;
+
+                entBuffer[0] = relHash[index].relEntries[a].binded[0].destination;  //Salvo di default la prima entità dell' array binded, che avrà un destinatario con valore x
+
+                for (unsigned int c = 1; c < relHash[index].relEntries[a].cplNumber; c++) {
+
+                    //Se trovo un valore maggiore di quello che consideravo il max allora flush dell' array, e quel dest diventa il nuovo max
+
+                    if (relHash[index].relEntries[a].binded[c].destination->destCounter > entBuffer[0]->destCounter) {
+
+                        free(entBuffer);
+
+                        bufferCounter = 1;
+
+                        entBuffer = calloc(1, sizeof(struct PlainEnt *));
+
+                        entBuffer[0] = relHash[index].relEntries[a].binded[c].destination; //Salvo il nuovo max
+
+                    } else if (relHash[index].relEntries[a].binded[c].destination->destCounter ==
+                               entBuffer[0]->destCounter) {
+
+                        //Se è uguale va aggiunto all'array di max, perchè sono equipotenti
+
+                        bufferCounter++;
+
+                        entBuffer = realloc(entBuffer, bufferCounter * sizeof(struct PlainEnt *));
+
+                        entBuffer[bufferCounter - 1] = relHash[index].relEntries[a].binded[c].destination;
+
+
+                    }
+
+                    //Se il valore è minore lo skippo, perchè ho gia il max
+                }
+
+                //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
+                //resettare a zero tutti i counter nella tabella.
+
+                printf("%s\n", relHash[index].relEntries[a].relName);
+
+                for (unsigned int d = 0; d < bufferCounter; d++) {
+
+                    //Stampa i risultati, occhio che in caso di situazione di parità ( più entità con stesso numero di riceventi)
+                    //van stampate in ordine alfabetico, creare una funzione di sort del buffer
+
+                    //Prima implementazione per debug
+
+                    printf("%s", entBuffer[d]->entName);
+
+
+                }
+
+
+                printf("%d", entBuffer[0]->destCounter);
+
+                printf("\n");
+
+                for (unsigned int f = 0; f < relHash[index].relEntries[a].cplNumber; f++) {
+
+                    relHash[index].relEntries[a].binded[f].destination->destCounter = 0;  //Resetto i counter per altri report.
+
+                }
+
+
+            }
+        }
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 //Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
@@ -482,6 +570,8 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
 
     } else if (inCommand[0] == 'r') {/*chiama il report*/
+
+        Report(relTable, entTable);
 
         if (DEBUG) { printf("%s", inCommand); }
         return true;
@@ -582,8 +672,6 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 
     return NULL;
 }
-
-
 
 //-----MAIN-------------------------------------------------------------------------------------------------------------
 
