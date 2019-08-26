@@ -416,7 +416,17 @@ void DeleteRel() {};
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//Il report deve scorrere tutta la tabella hash, e stampare tutte le relazioni che hanno almeno una coppia
+//Il report deve scorrere tutta la tabella hash, e stampare tutte le relazioni che hanno almeno una coppia con il loro max ricevente
+//Il conteggio dei max riceventi lo faccio a tempo di report.
+//L' idea è, scorro per ogni relazione l' array di coppie, entro negli indirizzi e nella tabella di entità incremento
+//un contatore. Una volta incrementato tutti i contatori, rileggo l' array e trovo l' int più grande. Scorro una terza volta
+// e salvo tutti coloro che come indice han quel valore e nel mentre resetto tutti gli indici a zero
+
+//Complessità spaziale: un unsigned int per ogni entità
+//Complessità temporale = O(3n)
+
+//Si potrebbe fare meglio in tempo, ma in spazio è praticamente minimo, perche si tratta di un byte per ogni diverso destinatario, e un array con
+// k elementi = numero di destinatari con valore max di sorgenti.
 
 
 
