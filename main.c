@@ -59,6 +59,8 @@ int hash64(char input);
 
 struct PlainEnt *EntityLookup(char *inputName, unsigned int tableHash, struct EntTable *entHash);
 
+void PrintArray(struct PlainEnt **array, unsigned int arrayCounter);
+
 
 //-----MEMORY INIT------------------------------------------------------------------------------------------------------
 
@@ -492,7 +494,7 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                 printf("%s\n", relHash[index].relEntries[a].relName);
 
-                for (unsigned int d = 0; d < bufferCounter; d++) {
+                /*for (unsigned int d = 0; d < bufferCounter; d++) {
 
                     //Stampa i risultati, occhio che in caso di situazione di parità ( più entità con stesso numero di riceventi)
                     //van stampate in ordine alfabetico, creare una funzione di sort del buffer
@@ -502,7 +504,9 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
                     printf("%s", entBuffer[d]->entName);
 
 
-                }
+                }*/
+
+                PrintArray(entBuffer, bufferCounter);
 
 
                 printf("%d", entBuffer[0]->destCounter);
@@ -672,6 +676,78 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 
     return NULL;
 }
+//----------------------------------------------------------------------------------------------------------------------
+
+void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
+
+    struct PlainEnt **buffer = calloc(1, sizeof(struct PlainEnt *));
+
+    unsigned int bufferCounter = 1;
+
+    //Questa funzione riordina l' array e lo stampa su stdout
+
+    buffer[0] = array[0];
+
+    for (unsigned int a = 1; a < arrayCounter; a++) {
+
+        for (unsigned int i = 0; i < bufferCounter; i++) {
+
+            if (strcmp(array[a]->entName, buffer[i]->entName) < 0) {
+
+                //Ho trovato l' indice, inserisco la
+
+                bufferCounter++;
+
+                buffer = realloc(buffer, bufferCounter * sizeof(struct Plainrel **));
+
+                unsigned int order = i;
+
+                for (unsigned int j = bufferCounter - 2; j > order; j--) {
+
+
+                    buffer[j + 1] = buffer[j];
+
+
+                }
+
+                buffer[order] = array[a];
+                break;
+
+            } else if (strcmp(array[a]->entName, buffer[i]->entName) == 0) {
+
+                //è un doppione, skippo l' esecuzione
+
+                break;
+
+
+            }
+
+        }
+
+        bufferCounter++;
+
+        buffer = realloc(buffer, bufferCounter* sizeof(struct PlainEnt**));
+
+        array[a] = buffer[bufferCounter-1];
+
+
+    }
+
+    for (unsigned int k = 0; k < bufferCounter; k++) {
+
+        printf("%s", buffer[k]->entName);
+        printf(" ");
+
+    }
+
+
+}
+
+
+
+
+
+
 
 //-----MAIN-------------------------------------------------------------------------------------------------------------
 
