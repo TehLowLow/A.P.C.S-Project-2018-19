@@ -584,6 +584,8 @@ int main() {
     struct EntTable *entitiesHash = initEntHash();
     struct RelTable *relationHash = initRelHash();
 
+    //Memoria usata per inizializzare le strutture dati: 128kB
+
     while (ParseTxt(entitiesHash, relationHash)) {
 
         //continue;
