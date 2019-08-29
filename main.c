@@ -441,7 +441,9 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
     struct PlainEnt **entBuffer = malloc(1 * sizeof(struct PlainEnt *));
     unsigned int bufferCounter = 0; //Dimensione dell'array
+    bool isEmpty = true;
 
+    printf("\n");
 
     for (int index = 0; index < 4097; index++) { //Per ogni chiave della hash
 
@@ -495,8 +497,9 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
                 //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
                 //resettare a zero tutti i counter nella tabella.
 
-                printf("%s", relHash[index].relEntries[a].relName); //Stampa nome relazione
-                printf(" ");
+                isEmpty = false;
+
+                printf("%s ", relHash[index].relEntries[a].relName); //Stampa nome relazione
 
                 /*for (unsigned int d = 0; d < bufferCounter; d++) {
 
@@ -514,7 +517,8 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                 printf("%d", entBuffer[0]->destCounter);  //Stampo il max ricevente
 
-                printf("\n");
+                printf("; ");
+
 
                 for (unsigned int f = 0; f < relHash[index].relEntries[a].cplNumber; f++) {
 
@@ -526,6 +530,13 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
             }
         }
     }
+
+    if (isEmpty) {
+        printf("none");
+
+    }
+
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -700,22 +711,18 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
             for (unsigned int b = 0; b < bufferCounter; b++) { //Cerco un ordine di inserimento nel buffer
 
-                order = b;
-
                 if (strcmp(array[a]->entName, buffer[b]->entName) ==
                     0) {//A meno che non sia un doppione, in quel caso non faccio nulla
 
                     found = true;
-                    break;
-
-                    //TODO problema: Se io ho un array fatto come ad esempio nel caso 1.2 di test Airiam, Ayala, Airiam, //
-                    //la seconda volta che compare Airiam mi si frega tutto, perche breakka come se fosse da ordinare
 
                 } else if (strcmp(array[a]->entName, buffer[b]->entName) < 0) {
 
                     break;
+
                 }
 
+                order++;
 
             }
 
@@ -748,6 +755,7 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
                 free(buffer);
                 buffer = temp;
 
+
             }
         }
 
@@ -756,6 +764,7 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
     for (unsigned int j = 0; j < bufferCounter; j++) { //Stampo tutti i nomi
 
         printf("%s", buffer[j]->entName);
+
         printf(" ");
 
     }
@@ -767,7 +776,7 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
 int main() {
 
-
+    int i = 0;
     struct EntTable *entitiesHash = initEntHash();
     struct RelTable *relationHash = initRelHash();
 
@@ -775,11 +784,9 @@ int main() {
 
     while (ParseTxt(entitiesHash, relationHash)) {
 
-        //continue;
-
     }
 
-    printf("FINITO");
+
 
 }
 
