@@ -238,7 +238,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                 } else {
 
                     //C'è gia gente allocata, devo verificare che questa coppia non esista ancora per quella relazione,
-                    // altrimenti non faccio nulla.                       TODO 2
+                    // altrimenti non faccio nulla.
 
                     for (unsigned int b = 0; b < relHashTable[tableIndex].relEntries[a].cplNumber; b++) {
                         // b è l' indice di coppia per verificare se la relazione gia esiste
@@ -252,7 +252,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                         }
                     }
 
-                    //Non esiste, devo aggiungere in coda la coppia di entità. Incremento il numero di couples, rialloco l' array e assegno i puntatori source e dest alla nuova couple.
+                    //Non esiste, devo aggiungere in coda la coppia di entità.
+                    //Incremento il numero di couples, rialloco l' array e assegno i puntatori source e dest alla nuova couple.
 
                     relHashTable[tableIndex].relEntries[a].cplNumber++;
 
@@ -318,13 +319,13 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         for (unsigned int a = 0; a < relHashTable[tableIndex].relNumber; a++) {
 
-            ordered = a;
-
             if (strcmp(inputRel, relHashTable[tableIndex].relEntries[a].relName) < 0) {
 
                 break;
 
             }
+
+            ordered++;
 
         }
 
@@ -497,21 +498,9 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
                 //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
                 //resettare a zero tutti i counter nella tabella.
 
-                isEmpty = false;
+                isEmpty = false;   //Se trovo qualche entità NON devo stampare NONE
 
                 printf("%s ", relHash[index].relEntries[a].relName); //Stampa nome relazione
-
-                /*for (unsigned int d = 0; d < bufferCounter; d++) {
-
-                    //Stampa i risultati, occhio che in caso di situazione di parità ( più entità con stesso numero di riceventi)
-                    //van stampate in ordine alfabetico, creare una funzione di sort del buffer
-
-                    //Prima implementazione per debug
-
-                    printf("%s", entBuffer[d]->entName);
-
-
-                }*/
 
                 PrintArray(entBuffer, bufferCounter);
 
@@ -519,24 +508,18 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                 printf("; ");
 
-
                 for (unsigned int f = 0; f < relHash[index].relEntries[a].cplNumber; f++) {
 
                     relHash[index].relEntries[a].binded[f].destination->destCounter = 0;  //Resetto i counter per altri report.
 
                 }
-
-
             }
         }
     }
 
     if (isEmpty) {
-        printf("none");
-
+        printf("none");  //Stampa none se non ho relazioni
     }
-
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -554,7 +537,6 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
         if (strcmp(inCommand, "addent") == 0) {//Chiama la funzione che aggiunge un elemento all hash
 
             HashInputEnt(entTable);
-
 
             if (DEBUG) { printf("%s", inCommand); }
             return true;
@@ -586,7 +568,6 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
         }
 
-
     } else if (inCommand[0] == 'r') {/*chiama il report*/
 
         Report(relTable, entTable);
@@ -595,8 +576,6 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
         return true;
 
     } else if (inCommand[0] == 'e') {/*termino*/ return false; }
-
-
 }
 
 //-----HELPERS----------------------------------------------------------------------------------------------------------
@@ -641,7 +620,6 @@ inline int hash64(char input) {    //Gioele     71  105
 
         hashed = input - 54;
 
-
     } else if (input == 95) { //Carattere '_'
 
         hashed = 37;
@@ -653,7 +631,6 @@ inline int hash64(char input) {    //Gioele     71  105
     }
 
     return hashed;
-
 }
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -752,9 +729,8 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
                     i++;
                 }
 
-                free(buffer);
+                free(buffer);  //Libero il buffer e gli assegno l'array ordinato
                 buffer = temp;
-
 
             }
         }
@@ -770,7 +746,6 @@ void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
     }
 }
 
-
 //-----MAIN-------------------------------------------------------------------------------------------------------------
 
 
@@ -785,25 +760,11 @@ int main() {
     while (ParseTxt(entitiesHash, relationHash)) {
 
     }
-
-
-
 }
 
-/* TODO
- *        cercare come mai usavo static inline nelle funzioni.
- *        Cercare in tutto il programma dove eseguo delle strcpy senza prima inizializzare la stringa.
+/* TODO *
  *        Problemi con gli indci dei binded e degli array, rileggere il codice tutto in generale.
- *        Minor Improvement: Rimuovere in memoria i " " che comunque occupano due byte per ogni entry (poca roba ma magari...)
- *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
- *      2 L array di keys è inutile tenerlo di int, è più comodo risparmiare tempo a discapito dello spazio e salvare ptr alla relation in cui
- *        è contenuta l' entità monitorata. Diventa pericoloso in termini di spazio, ma sicuramente non dover fare continue scansioni della
- *        hash è conveniente in termini di tempo.
+        1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
  *      3 Devo controllare di aver messo bene i return, perchè devo poter uscire dai for appena una condizione non è soddisfatta.
- *      4 Qua scansiono l'array di entità per vedere se trovo l' entità, ma dovrei controllare prima che ci sia, perchè se ancora non è inizializzato sarà null
- *        La condizione del for potrebbe salvarmi, perchè se entNumber è zero, esco subito dal for e sto a posto.
  *      5 Aggiungere il backtracking
- *
- *
- *
  */
