@@ -63,6 +63,8 @@ struct PlainEnt *EntityLookup(char *inputName, unsigned int tableHash, struct En
 
 void PrintArray(struct PlainEnt **array, unsigned int arrayCounter);
 
+struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct RelTable *relHash);
+
 
 //-----MEMORY INIT------------------------------------------------------------------------------------------------------
 
@@ -240,7 +242,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     relHashTable[tableIndex].relEntries[a].binded[0].source = srcFound;
                     relHashTable[tableIndex].relEntries[a].binded[0].destination = destFound;
 
-                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.
+                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
                     srcFound->backtrackIndex++;
                     srcFound->relKeys = realloc(srcFound->relKeys,
                                                 srcFound->backtrackIndex * sizeof(struct PlainRel *));
@@ -287,7 +289,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destFound;
 
-                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.
+                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.  //TODO IMPORTANTE
                     srcFound->backtrackIndex++;
                     srcFound->relKeys = realloc(srcFound->relKeys,
                                                 srcFound->backtrackIndex * sizeof(struct PlainRel *));
@@ -334,7 +336,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
             relHashTable[tableIndex].relEntries[0].binded[0].destination = destFound;
 
-            //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.
+            //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
             srcFound->backtrackIndex++;
             srcFound->relKeys = realloc(srcFound->relKeys,
                                         srcFound->backtrackIndex * sizeof(struct PlainRel *));
@@ -414,7 +416,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
         relHashTable[tableIndex].relEntries[ordered].binded[0].source = srcFound;
         relHashTable[tableIndex].relEntries[ordered].binded[0].destination = destFound;
 
-        //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.
+        //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
         srcFound->backtrackIndex++;
         srcFound->relKeys = realloc(srcFound->relKeys,
                                     srcFound->backtrackIndex * sizeof(struct PlainRel *));
@@ -428,10 +430,6 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
         return;
     }
 }
-
-
-
-
 
 /*Ordinamento Lessicografico
  *
@@ -468,16 +466,16 @@ void DeleteEnt() {};
 
 /*DelRel deve cancellare il binded nella relazione che compare nel comando, quindi:
  *
- * delrel a b likes
+ * delrel a b relname
  *
  * è come dire
  *
- * "Entra in likes, ed elimina la struct Couple che contiene a e b
+ * "Entra in relname, ed elimina la struct Couple che contiene a e b
  *
  *
  * Quindi la prima cosa da fare è verificare:
  *
- * Che la relazione esista (è il check piu veloce, le relazioni sono poche e in ordine alfabetico)
+ * Che la relazione esista;
  * Che esista la coppia a & b.
  *
  * è inutile verificare che esistano a e b, perchè se esiste la coppia a & b, allora è garantito che esistano sia a che b
@@ -485,11 +483,12 @@ void DeleteEnt() {};
  */
 
 
-void DeleteRel() {
+void DeleteRel(struct RelTable *relHash) {
 
     char *src;
     char *dest;
     char *rel;
+    struct PlainRel *relFound;
 
     int tableIndex;
 
@@ -502,9 +501,23 @@ void DeleteRel() {
     if (strlen(rel) > 3) {
 
         tableIndex = hash64(rel[1]) * 64 + hash64(rel[2]);
-    }else{
+    } else {
 
         tableIndex = 4096;
+
+    }
+
+
+    relFound = RelationLookup(rel, tableIndex, relHash);
+
+    for (unsigned int i = 0; i < relFound->cplNumber; i++) {
+
+        if (strcmp(relFound->binded[i].source->entName, src) == 0 &&
+            strcmp(relFound->binded[i].destination->entName, dest) == 0) {
+
+
+        }
+
 
     }
 
@@ -856,5 +869,6 @@ int main() {
  *        Problemi con gli indci dei binded e degli array, rileggere il codice tutto in generale.
  *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
  *      3 Devo controllare di aver messo bene i return, perchè devo poter uscire dai for appena una condizione non è soddisfatta.
+ *      IMPORTANTE: nel backtracking possono finirci anche indici uguali, percui devo pensare a come gestire un backtracking efficiente
  *
  */
