@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#define DEBUG 0
-
 
 typedef enum Bool {
     false, true
@@ -22,11 +20,11 @@ struct PlainEnt {
 
     char *entName; //Nome dell' entità
 
-    unsigned int destCounter; //Int per il conteggio di sorgenti nel report.
+    unsigned int destCounter; //Int per il conteggio di sorgenti nel report. TODO Potrebbe essere inutile
 
-    struct PlainRel **relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
+    char **relKeys; // Array per il backtracking, contiene tutte le chiavi di relazioni in cui la PlainEnt è coinvolta
 
-    unsigned int backtrackIndex;
+    unsigned int backtrackIndex; //Conteggio dim array
 };
 
 
@@ -50,20 +48,30 @@ struct PlainRel {
 
 struct Couples {  //coppia sorgente destinazione collegata da una relazione
 
-    struct PlainEnt *source;
+    char *source;
 
-    struct PlainEnt *destination;
+    char *destination;
 };
 
+struct ReportEnt {  //Struct per la creazione dell array di destinatari nel report.
+
+    char *entName;
+
+    unsigned int destCounter;
+
+
+};
+
+char *CONST_TERM = "@@@@";
 //-----PROTOTYPES-------------------------------------------------------------------------------------------------------
 
 int hash64(char input);
 
 struct PlainEnt *EntityLookup(char *inputName, unsigned int tableHash, struct EntTable *entHash);
 
-void PrintArray(struct PlainEnt **array, unsigned int arrayCounter);
-
 struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct RelTable *relHash);
+
+struct ReportEnt *sortCouples(struct RelTable *relHash, int tableIndex, unsigned int relIndex, unsigned int coupleNum);
 
 
 //-----MEMORY INIT------------------------------------------------------------------------------------------------------
@@ -239,19 +247,21 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber;
 
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
-                    relHashTable[tableIndex].relEntries[a].binded[0].source = srcFound;
-                    relHashTable[tableIndex].relEntries[a].binded[0].destination = destFound;
+                    relHashTable[tableIndex].relEntries[a].binded[0].source = srcFound->entName;
+                    relHashTable[tableIndex].relEntries[a].binded[0].destination = destFound->entName;
 
-                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
+                    //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
                     srcFound->backtrackIndex++;
                     srcFound->relKeys = realloc(srcFound->relKeys,
-                                                srcFound->backtrackIndex * sizeof(struct PlainRel *));
-                    srcFound->relKeys[srcFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[a];
+                                                srcFound->backtrackIndex * sizeof(char *));
+                    strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1],
+                           relHashTable[tableIndex].relEntries[a].relName); //COpia il nome della stringa per backtrack
 
                     destFound->backtrackIndex++;
                     destFound->relKeys = realloc(destFound->relKeys,
-                                                 destFound->backtrackIndex * sizeof(struct PlainRel *));
-                    destFound->relKeys[destFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[a];
+                                                 destFound->backtrackIndex * sizeof(char *));
+                    strcpy(destFound->relKeys[destFound->backtrackIndex - 1],
+                           relHashTable[tableIndex].relEntries[a].relName);
 
                     return;
 
@@ -263,8 +273,8 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     for (unsigned int b = 0; b < relHashTable[tableIndex].relEntries[a].cplNumber; b++) {
                         // b è l' indice di coppia per verificare se la relazione gia esiste
 
-                        if (strcmp(relHashTable[tableIndex].relEntries[a].binded[b].source->entName, src) == 0 &&
-                            strcmp(relHashTable[tableIndex].relEntries[a].binded[b].destination->entName, dest) == 0) {
+                        if (strcmp(relHashTable[tableIndex].relEntries[a].binded[b].source, src) == 0 &&
+                            strcmp(relHashTable[tableIndex].relEntries[a].binded[b].destination, dest) == 0) {
 
                             //Esiste gia, ritorno
                             return;
@@ -273,7 +283,7 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     }
 
                     //Non esiste, devo aggiungere in coda la coppia di entità.
-                    //Incremento il numero di couples, rialloco l' array e assegno i puntatori source e dest alla nuova couple.
+                    //Incremento il numero di couples, rialloco l' array e assegno i nomi di source e dest alla nuova couple.
 
                     relHashTable[tableIndex].relEntries[a].cplNumber++;
 
@@ -285,20 +295,23 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     relHashTable[tableIndex].relEntries[a].binded = tempBind;
 
-                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source = srcFound;
+                    strcpy(relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source, srcFound->entName);
 
-                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = destFound;
+                    strcpy(relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination,
+                           destFound->entName);
 
-                    //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent.  //TODO IMPORTANTE
+                    //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
                     srcFound->backtrackIndex++;
                     srcFound->relKeys = realloc(srcFound->relKeys,
-                                                srcFound->backtrackIndex * sizeof(struct PlainRel *));
-                    srcFound->relKeys[srcFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[a];
+                                                srcFound->backtrackIndex * sizeof(char *));
+                    strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1],
+                           relHashTable[tableIndex].relEntries[a].relName);
 
                     destFound->backtrackIndex++;
                     destFound->relKeys = realloc(destFound->relKeys,
-                                                 destFound->backtrackIndex * sizeof(struct PlainRel *));
-                    destFound->relKeys[destFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[a];
+                                                 destFound->backtrackIndex * sizeof(char *));
+                    strcpy(destFound->relKeys[destFound->backtrackIndex - 1],
+                           relHashTable[tableIndex].relEntries[a].relName);
 
                     return;
 
@@ -332,20 +345,20 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
             relHashTable[tableIndex].relEntries[0].binded = calloc(1,
                                                                    sizeof(struct Couples)); // Alloco la prima cella di Coppie e le assegno
 
-            relHashTable[tableIndex].relEntries[0].binded[0].source = srcFound;
+            strcpy(relHashTable[tableIndex].relEntries[0].binded[0].source, srcFound->entName);
 
-            relHashTable[tableIndex].relEntries[0].binded[0].destination = destFound;
+            strcpy(relHashTable[tableIndex].relEntries[0].binded[0].destination, destFound->entName);
 
-            //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
+            //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
             srcFound->backtrackIndex++;
             srcFound->relKeys = realloc(srcFound->relKeys,
-                                        srcFound->backtrackIndex * sizeof(struct PlainRel *));
-            srcFound->relKeys[srcFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[0];
+                                        srcFound->backtrackIndex * sizeof(char *));
+            strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[0].relName);
 
             destFound->backtrackIndex++;
             destFound->relKeys = realloc(destFound->relKeys,
-                                         destFound->backtrackIndex * sizeof(struct PlainRel *));
-            destFound->relKeys[destFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[0];
+                                         destFound->backtrackIndex * sizeof(char *));
+            strcpy(destFound->relKeys[destFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[0].relName);
 
             return;
 
@@ -413,19 +426,19 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
         //Ci aggiungo la nuova relazione
 
-        relHashTable[tableIndex].relEntries[ordered].binded[0].source = srcFound;
-        relHashTable[tableIndex].relEntries[ordered].binded[0].destination = destFound;
+        strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].source, srcFound->entName);
+        strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].destination, destFound->entName);
 
-        //Aggiungo l' indirizzo della relazione in cui sono coinvolte src e dest alle entità per la delent. //TODO IMPORTANTE
+        //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
         srcFound->backtrackIndex++;
         srcFound->relKeys = realloc(srcFound->relKeys,
-                                    srcFound->backtrackIndex * sizeof(struct PlainRel *));
-        srcFound->relKeys[srcFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[ordered];
+                                    srcFound->backtrackIndex * sizeof(char *));
+        strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[ordered].relName);
 
         destFound->backtrackIndex++;
         destFound->relKeys = realloc(destFound->relKeys,
-                                     destFound->backtrackIndex * sizeof(struct PlainRel *));
-        destFound->relKeys[destFound->backtrackIndex - 1] = &relHashTable[tableIndex].relEntries[ordered];
+                                     destFound->backtrackIndex * sizeof(char *));
+        strcpy(destFound->relKeys[destFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[ordered].relName);
 
         return;
     }
@@ -512,8 +525,8 @@ void DeleteRel(struct RelTable *relHash) {
 
     for (unsigned int i = 0; i < relFound->cplNumber; i++) {
 
-        if (strcmp(relFound->binded[i].source->entName, src) == 0 &&
-            strcmp(relFound->binded[i].destination->entName, dest) == 0) {
+        if (strcmp(relFound->binded[i].source, src) == 0 &&
+            strcmp(relFound->binded[i].destination, dest) == 0) {
 
 
         }
@@ -544,10 +557,11 @@ void DeleteRel(struct RelTable *relHash) {
 void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
     struct PlainEnt **entBuffer = malloc(1 * sizeof(struct PlainEnt *));
+    struct ReportEnt *entReport;
     unsigned int bufferCounter = 0; //Dimensione dell'array
     bool isEmpty = true;
+    bool isFirst = true;
 
-    printf("\n");
 
     for (int index = 0; index < 4097; index++) { //Per ogni chiave della hash
 
@@ -555,67 +569,41 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
             for (unsigned int a = 0; a < relHash[index].relNumber; a++) {//Per ogni relazione di quella chiave
 
-                for (unsigned int b = 0; b <
-                                         relHash[index].relEntries[a].cplNumber; b++) {//Per ogni coppia, entro in dest e incremento il suo destCounter
+                entReport = sortCouples(relHash, index, a,
+                                        relHash[index].relEntries[a].cplNumber);  //Creo un array di destinatari da stampare
 
-                    relHash[index].relEntries[a].binded[b].destination->destCounter++;
 
-                }
+                if (entReport != NULL) {
 
-                bufferCounter = 1;
+                    isEmpty = false;
 
-                entBuffer[0] = relHash[index].relEntries[a].binded[0].destination;  //Salvo di default la prima entità dell' array binded, che avrà un destinatario con valore x
+                    if (isFirst) { //Stampa nome relazione
 
-                for (unsigned int c = 1; c < relHash[index].relEntries[a].cplNumber; c++) {
+                        printf("%s", relHash[index].relEntries[a].relName);
+                        isFirst = false;
 
-                    //Se trovo un valore maggiore di quello che consideravo il max allora flush dell' array, e quel dest diventa il nuovo max
 
-                    if (relHash[index].relEntries[a].binded[c].destination->destCounter > entBuffer[0]->destCounter) {
+                    } else { //Stampa nome relazione (altro formato)
 
-                        free(entBuffer);
 
-                        bufferCounter = 1;
-
-                        entBuffer = calloc(1, sizeof(struct PlainEnt *));
-
-                        entBuffer[0] = relHash[index].relEntries[a].binded[c].destination; //Salvo il nuovo max
-
-                    } else if (relHash[index].relEntries[a].binded[c].destination->destCounter ==
-                               entBuffer[0]->destCounter) {
-
-                        //Se è uguale va aggiunto all'array di max, perchè sono equipotenti
-
-                        bufferCounter++;
-
-                        entBuffer = realloc(entBuffer, bufferCounter * sizeof(struct PlainEnt *));
-
-                        entBuffer[bufferCounter -
-                                  1] = relHash[index].relEntries[a].binded[c].destination; //Aggiunta in coda
-
+                        printf(" %s", relHash[index].relEntries[a].relName);
 
                     }
 
-                    //Se il valore è minore lo skippo, perchè ho gia il max
-                }
+                    unsigned int n = 0;
 
-                //Finito questi cicli, devo stampare i risultati secondo specifiche, e fare un ultimo scorrimento per
-                //resettare a zero tutti i counter nella tabella.
+                    while (strcmp(entReport[n].entName, CONST_TERM) == 0) {
 
-                isEmpty = false;   //Se trovo qualche entità NON devo stampare NONE
+                        printf(" %s", entReport[n].entName);
 
-                printf("%s ", relHash[index].relEntries[a].relName); //Stampa nome relazione
+                    }
 
-                PrintArray(entBuffer, bufferCounter);
+                    printf(" %d", entReport[0].destCounter);  //Stampo il max ricevente
 
-                printf("%d", entBuffer[0]->destCounter);  //Stampo il max ricevente
-
-                printf("; ");
-
-                for (unsigned int f = 0; f < relHash[index].relEntries[a].cplNumber; f++) {
-
-                    relHash[index].relEntries[a].binded[f].destination->destCounter = 0;  //Resetto i counter per altri report.
+                    printf(";");
 
                 }
+
             }
         }
     }
@@ -623,7 +611,11 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
     if (isEmpty) {
         printf("none");  //Stampa none se non ho relazioni
     }
+
+    printf("\n");
+
 }
+
 
 //----------------------------------------------------------------------------------------------------------------------
 //Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
@@ -641,7 +633,7 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
             HashInputEnt(entTable);
 
-            if (DEBUG) { printf("%s", inCommand); }
+
             return true;
 
         } else {//Chiama la funzione che aggiunge una relazione alla hash
@@ -649,7 +641,6 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
             HashInputRel(relTable, entTable);
 
 
-            if (DEBUG) { printf("%s", inCommand); }
             return true;
 
         }
@@ -659,14 +650,14 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
         if (strcmp(inCommand, "delent") == 0) { //chiama la funzione di elimina elemento
 
 
-            if (DEBUG) { printf("%s", inCommand); }
+
             return true;
 
 
         } else {  //chiama la funzione di elimina relazione
 
 
-            if (DEBUG) { printf("%s", inCommand); }
+
             return true;
 
         }
@@ -675,7 +666,7 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
         Report(relTable, entTable);
 
-        if (DEBUG) { printf("%s", inCommand); }
+
         return true;
 
     } else if (inCommand[0] == 'e') {/*termino*/ return false; }
@@ -772,85 +763,142 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-void PrintArray(struct PlainEnt **array, unsigned int arrayCounter) {
 
-    struct PlainEnt **buffer = calloc(1, sizeof(struct PlainEnt *));
+//----------------------------------------------------------------------------------------------------------------------
+//Entro nella hash a tableindex, accedo alla relazione a relIndex e scorro tutte le coupleNum coppie.
+//Mentre scorro mi creo un array di destinatari in ordine alfabetico e intanto conteggio
+//Ogni volta che aggiungo un dest, lo creo nell array con counter = 1, e ogni volta che lo reincontro incremento.
+//Alla fine ripasso e cerco il max, e con sole due scansioni, una di N binnded e una di k riceventi univoci, ho l array da stampare e ordinato.
 
-    unsigned int bufferCounter = 1;
 
+struct ReportEnt *sortCouples(struct RelTable *relHash, int tableIndex, unsigned int relIndex, unsigned int coupleNum) {
+
+    struct ReportEnt *destArray = calloc(1, sizeof(struct ReportEnt));
+    unsigned int arrayCounter = 1;
     bool found = false;
 
-    buffer[0] = array[0];  //Inserisco di base il primo elemento come pivot
+    if (relHash[tableIndex].relEntries[relIndex].binded != NULL) {//Se ho delle coppie
 
-    if (arrayCounter > 1) { //Se l' array non è unitario
+        strcpy(destArray[0].entName,
+               relHash[tableIndex].relEntries[relIndex].binded[0].destination); //Copio il primo nome di default
 
-        for (unsigned int a = 1; a < arrayCounter; a++) { //Per ogni elemento dell' array
+        destArray[0].destCounter = 1;
 
-            unsigned int order = 0;
-            found = false;
+        for (unsigned int i = 1; i < coupleNum; i++) {//Per tutte le restanti coppie
 
-            for (unsigned int b = 0; b < bufferCounter; b++) { //Cerco un ordine di inserimento nel buffer
+            unsigned int sortOrder = 0;
 
-                if (strcmp(array[a]->entName, buffer[b]->entName) ==
-                    0) {//A meno che non sia un doppione, in quel caso non faccio nulla
+            for (unsigned int k = 0; k < arrayCounter; k++) { //Per ogni elemento gia inserito nell array di destinatari
 
+                if (strcmp(relHash[tableIndex].relEntries[relIndex].binded[i].destination, destArray[k].entName) ==
+                    0) { //Se incontro un doppione, ne incremento il counter
+
+                    destArray[k].destCounter++;
                     found = true;
-
-                } else if (strcmp(array[a]->entName, buffer[b]->entName) < 0) {
-
                     break;
 
+                    //Se trovo un doppio devo incrementare il counter
+
+                } else if (
+                        strcmp(relHash[tableIndex].relEntries[relIndex].binded[i].destination, destArray[k].entName) <
+                        0) { //Se invece non lo incontro, ma trovo qualcuno lessicograficamente maggiore, allora devo inserirlo in quella posizione
+                    break;
                 }
 
-                order++;
+                sortOrder++;
 
             }
 
-            if (found == false) { //Se non trovo doppioni
 
-                bufferCounter++;
+            if (found == false) {//Devo aggiungere in ordine il nuovo destinatario
 
-                struct PlainEnt **temp = calloc(bufferCounter,
-                                                sizeof(struct PlainEnt *)); //Alloco un vettore temporaneo
+                arrayCounter++;
 
-                unsigned int i = 0;
+                struct ReportEnt *tempArray = malloc(
+                        arrayCounter * sizeof(struct ReportEnt)); //Alloco un array temp con dim. arraycounter
 
-                while (i < order) { //Copio gli elementi in ordine
+                unsigned int j = 0;
 
-                    temp[i] = buffer[i];
-                    i++;
+                while (j < sortOrder) {
+
+                    tempArray[j] = destArray[j];  //Copio tutti gli elementi in ordine corretto
+                    j++;
 
                 }
 
-                temp[order] = array[a]; //Aggiungo il nuovo elemento
+                strcpy(tempArray[sortOrder].entName, relHash[tableIndex].relEntries[relIndex].binded[i].destination);
+                tempArray[sortOrder].destCounter = 1; //Copio ed inizializzo il nuovo destinatario
 
-                i = order + 1;
+                j = sortOrder + 1;
 
-                while (i < bufferCounter) { //Copio gli elementi rimanenti dopo il nuovo
+                while (j < arrayCounter) {
 
-                    temp[i] = buffer[i - 1];
-                    i++;
+                    tempArray[j] = destArray[j - 1]; //Copio i successivi
+                    j++;
+
+
                 }
 
-                free(buffer);  //Libero il buffer e gli assegno l'array ordinato
-                buffer = temp;
+                free(destArray);
+                destArray = tempArray;
 
+            }
+
+        }
+
+        //Ora devo trovare il/i MAX
+
+        unsigned int maxRecvr = 0; //Maggior numero riscontrato come ricevente
+        unsigned int maxDim;  //dimensione dell' array di riceventi
+
+        maxRecvr = destArray[0].destCounter;  //Parto con una base di contatore data dal primo elemento nei riceventi
+
+        for (unsigned int l = 1; l < arrayCounter; l++) {
+
+            //Scorro e trovo il Max integer, che deve essere strettamente maggiore (e non uguale) al max visto fin ora
+
+            if (destArray[l].destCounter > maxRecvr) {
+
+                maxRecvr = destArray[l].destCounter;
+
+            }
+
+        }
+
+        struct ReportEnt *tempMax = malloc(sizeof(struct ReportEnt));
+        maxDim = 1;
+
+        for (unsigned int m = 0; m < arrayCounter; m++) { //Per ogni elemento nel DestArray devo salvare solo i max
+
+            if (destArray[m].destCounter == maxRecvr) { //Se trovo un ricevente che contiene maxdim, lo salvo
+
+                maxDim++;
+                tempMax = realloc(tempMax, maxDim * sizeof(struct ReportEnt));
+                tempMax[maxDim - 2] = destArray[m];
             }
         }
 
+        strcpy(tempMax[maxDim-1].entName, CONST_TERM);
+
+        free(destArray);
+
+        return tempMax;
+
+
+    } else {
+
+        return NULL;
     }
 
-    for (unsigned int j = 0; j < bufferCounter; j++) { //Stampo tutti i nomi
 
-        printf("%s", buffer[j]->entName);
 
-        printf(" ");
-
-    }
+    /*TODO non ritorno una dimensione di questo array, magari ci metto un terminatore.
+     * Ancora meglio sarebbe stampare direttamente qua i destinatari, ma c è da vedere report che cazzo fa
+     * In ogni caso alla fine di questa funzione io possiedo un array ordinato con tutti i riceventi.
+     * Resta da trovare il MAX e stamparlo,e potrei eliminare printarray e parte di report.*/
 }
-
+//----------------------------------------------------------------------------------------------------------------------
 //-----MAIN-------------------------------------------------------------------------------------------------------------
-
 
 int main() {
 
