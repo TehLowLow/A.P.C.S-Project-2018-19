@@ -609,7 +609,7 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                     unsigned int n = 0;
 
-                    while (strcmp(entReport[n].entName, CONST_TERM) != 0) {
+                    while (strcmp(entReport[n].entName, CONST_TERM) != 0) { //TODO Errore nel sorting, manca della gente.
 
                         printf(" %s", entReport[n].entName);
                         n++;
@@ -787,7 +787,7 @@ struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct 
 //Mentre scorro mi creo un array di destinatari in ordine alfabetico e intanto conteggio
 //Ogni volta che aggiungo un dest, lo creo nell array con counter = 1, e ogni volta che lo reincontro incremento.
 //Alla fine ripasso e cerco il max, e con sole due scansioni, una di N binnded e una di k riceventi univoci, ho l array da stampare e ordinato.
-
+//TODO Errore qua dentro, manca della gente. Il sorting probabilmente si scassa con degli indici.
 
 struct ReportEnt *sortCouples(struct RelTable *relHash, int tableIndex, unsigned int relIndex, unsigned int coupleNum) {
 
