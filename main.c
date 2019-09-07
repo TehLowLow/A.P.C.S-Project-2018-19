@@ -295,8 +295,10 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
 
                     relHashTable[tableIndex].relEntries[a].binded = tempBind;
 
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source =  malloc(1);
                     strcpy(relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].source, srcFound->entName);
 
+                    relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination = malloc(1);
                     strcpy(relHashTable[tableIndex].relEntries[a].binded[cplNumbTemp - 1].destination,
                            destFound->entName);
 
@@ -304,12 +306,16 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
                     srcFound->backtrackIndex++;
                     srcFound->relKeys = realloc(srcFound->relKeys,
                                                 srcFound->backtrackIndex * sizeof(char *));
+
+                    srcFound->relKeys[srcFound->backtrackIndex - 1] = malloc(1);
                     strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1],
                            relHashTable[tableIndex].relEntries[a].relName);
 
                     destFound->backtrackIndex++;
                     destFound->relKeys = realloc(destFound->relKeys,
                                                  destFound->backtrackIndex * sizeof(char *));
+
+                    destFound->relKeys[destFound->backtrackIndex - 1] = malloc(1);
                     strcpy(destFound->relKeys[destFound->backtrackIndex - 1],
                            relHashTable[tableIndex].relEntries[a].relName);
 
@@ -345,19 +351,30 @@ void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) 
             relHashTable[tableIndex].relEntries[0].binded = calloc(1,
                                                                    sizeof(struct Couples)); // Alloco la prima cella di Coppie e le assegno
 
+            relHashTable[tableIndex].relEntries[0].binded[0].source = malloc(1);
+
+            relHashTable[tableIndex].relEntries[0].binded[0].destination = malloc(1);
+
             strcpy(relHashTable[tableIndex].relEntries[0].binded[0].source, srcFound->entName);
 
             strcpy(relHashTable[tableIndex].relEntries[0].binded[0].destination, destFound->entName);
 
             //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
             srcFound->backtrackIndex++;
+
             srcFound->relKeys = realloc(srcFound->relKeys,
                                         srcFound->backtrackIndex * sizeof(char *));
+
+            srcFound->relKeys[srcFound->backtrackIndex - 1] = malloc(1);
+
             strcpy(srcFound->relKeys[srcFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[0].relName);
 
             destFound->backtrackIndex++;
             destFound->relKeys = realloc(destFound->relKeys,
                                          destFound->backtrackIndex * sizeof(char *));
+
+            destFound->relKeys[destFound->backtrackIndex - 1]= malloc(1);
+
             strcpy(destFound->relKeys[destFound->backtrackIndex - 1], relHashTable[tableIndex].relEntries[0].relName);
 
             return;
@@ -592,9 +609,10 @@ void Report(struct RelTable *relHash, struct EntTable *entHash) {
 
                     unsigned int n = 0;
 
-                    while (strcmp(entReport[n].entName, CONST_TERM) == 0) {
+                    while (strcmp(entReport[n].entName, CONST_TERM) != 0) {
 
                         printf(" %s", entReport[n].entName);
+                        n++;
 
                     }
 
@@ -779,6 +797,8 @@ struct ReportEnt *sortCouples(struct RelTable *relHash, int tableIndex, unsigned
 
     if (relHash[tableIndex].relEntries[relIndex].binded != NULL) {//Se ho delle coppie
 
+        destArray[0].entName = malloc(1);
+
         strcpy(destArray[0].entName,
                relHash[tableIndex].relEntries[relIndex].binded[0].destination); //Copio il primo nome di default
 
@@ -878,7 +898,9 @@ struct ReportEnt *sortCouples(struct RelTable *relHash, int tableIndex, unsigned
             }
         }
 
-        strcpy(tempMax[maxDim-1].entName, CONST_TERM);
+        tempMax[maxDim-1].entName = malloc(1);
+
+        strcpy(tempMax[maxDim - 1].entName, CONST_TERM);
 
         free(destArray);
 
