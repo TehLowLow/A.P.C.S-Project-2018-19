@@ -199,7 +199,7 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
     int tableIndex = 0;
     struct PlainEnt *srcFound = NULL;
     struct PlainEnt *destFound = NULL;
-    struct PlainEnt *relFound = NULL;
+
     unsigned int ordered;
     unsigned int bufferCounter;
 
@@ -258,7 +258,6 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
                     relHashTable[tableIndex].relEntries[a].cplNumber = 1;
 
-                    unsigned int cplIndex = relHashTable[tableIndex].relEntries[a].cplNumber;
 
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
                     relHashTable[tableIndex].relEntries[a].binded[0].source = srcFound->entName;
@@ -497,45 +496,55 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
     if (deleteEnt != NULL) {
 
+
+        //Per tutti i backtrack che ha salvato in memoria elimino ogni traccia dell' entità
+
         for (unsigned int i = 0; i < deleteEnt->backtrackIndex; i++) {
 
-            bindRemover(deleteEnt->backTrack[i], deleteEnt->entName, relHash);
+            bindRemover(deleteEnt->backTrack[i].relName, toDelete, relHash, entHash);
 
         }
 
-
-        //L' ho cancellata da tutte le relazioni, ora devo eliminarla dalla hash.
+        //Eliminata ogni traccia di deleteEnt dalle relazioni, devo eliminarla dalla hashtable
 
         for (unsigned int j = 0; j < entHash[hashEnt].entNumber; j++) {
 
-            if (entHash[hashEnt].entNumber == 1) { //Se è l unica metto tutto a null
+            if (strcmp(toDelete, entHash[hashEnt].entEntries[j].entName) == 0) {
 
-                free(entHash[hashEnt].entEntries);
-                entHash[hashEnt].entNumber = 0;
+                //Ho trovato l' entità in tabella, devo sistemarla
+                //Se l' entità sta in fondo alla hash, basta semplicemente riallocare
+
+                if (entHash[hashEnt].entNumber == 1) {
+
+                    free(entHash[hashEnt].entEntries);
+                    entHash[hashEnt].entNumber = 0;
+                    entHash[hashEnt].entEntries = NULL;
+
+                    break;
 
 
-            } else if (strcmp(toDelete, entHash[hashEnt].entEntries[j].entName) == 0) {
+                } else if (j == entHash[hashEnt].entNumber - 1) {
 
-                if (j == entHash[hashEnt].entNumber - 1) { //Se sta in ultima posizione la elimino e rialloco
+                    //Sono in coda, libero e rialloco
 
-                    entHash[hashEnt].entEntries[j].entName = NULL;
+                    free(entHash[hashEnt].entEntries[j].backTrack);
+
                     entHash[hashEnt].entNumber--;
 
-                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries,
-                                                          sizeof(struct PlainEnt) * relHash->relNumber);
-                    break;
+                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries, entHash[hashEnt].entNumber);
 
 
                 } else {
 
-                    //Se non sta in ultima posizione, la scambio con l' ultima e rialloco
+                    //Sono in mezzo, scambio questa ent con la coda e la elimino.
 
                     entHash[hashEnt].entEntries[j] = entHash[hashEnt].entEntries[entHash[hashEnt].entNumber - 1];
 
                     entHash[hashEnt].entNumber--;
 
-                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries,
-                                                          entHash[hashEnt].entNumber * sizeof(struct PlainEnt));
+                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries, entHash[hashEnt].entNumber *
+                                                                                       sizeof(struct PlainEnt));
+
 
                 }
             }
@@ -579,8 +588,7 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
     char *dest;
     char *rel;
     struct PlainRel *relFound;
-    bool srcFound = false;
-    bool destFound = false;
+
 
     int tableIndex;
 
@@ -616,6 +624,8 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
                     relFound->cplNumber = 0;
                     free(relFound->binded);
                     relFound->binded = NULL;
+                    FixBacktrack(rel, src, entHash);
+                    FixBacktrack(rel, dest, entHash);
                     break;
 
 
@@ -641,61 +651,19 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
                     relFound->binded = realloc(relFound->binded, relFound->cplNumber * sizeof(struct Couples));
 
+                    FixBacktrack(rel, src, entHash);
+                    FixBacktrack(rel, dest, entHash);
+
                     break;
 
                 }
 
-            }
-        }
 
-
-
-        //Successivamente cerco nell' array di binded altre occorrenze delle due entità, una per volta.
-        //Se l array di binded è diventato null, devo cercare subito le due entità.
-
-        if (relFound->binded == NULL) {
-
-            FixBacktrack(rel, src, entHash);
-            FixBacktrack(rel, dest, entHash);
-
-        } else {
-
-            //Scorri binded e chiama fixBt se non trovi o src o dest
-
-
-
-            for (unsigned int i = 0; i < relFound->cplNumber; i++) {
-
-                if (strcmp(relFound->binded[i].source, src) == 0) {
-
-                    srcFound = true; //Trovata un occorrenza di sorgente, non devo fixare TODO ERRATO, considerando che aggiungo con molteplicità, devo fixare lo stesso
-                    break;
-                }
             }
 
-            for (unsigned int j = 0; j < relFound->cplNumber; j++) {
-
-                if (strcmp(relFound->binded[j].destination, dest) == 0) {
-
-                    destFound = true; //Trovata un occorrenza di dest, non devo fixare
-                    break;
-                }
-            }
         }
 
-        //Valuto i booleani, e decido quale fixare
-
-        if (srcFound == false) {
-
-            FixBacktrack(rel, src, entHash);
-        }
-
-        if (destFound == false) {
-
-            FixBacktrack(rel, dest, entHash);
-        }
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -715,11 +683,11 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
 
 
-static inline void Report(struct RelTable *relHash, struct EntTable *entHash) {
+static inline void Report(struct RelTable *relHash) {
 
-    struct PlainEnt **entBuffer = malloc(1 * sizeof(struct PlainEnt *));
+
     struct ReportEnt *entReport;
-    unsigned int bufferCounter = 0; //Dimensione dell'array
+
     bool isEmpty = true;
     bool isFirst = true;
 
@@ -754,7 +722,7 @@ static inline void Report(struct RelTable *relHash, struct EntTable *entHash) {
                     unsigned int n = 0;
 
                     while (strcmp(entReport[n].entName, CONST_TERM) !=
-                           0) { //TODO Errore nel sorting, manca della gente.
+                           0) {
 
                         printf(" %s", entReport[n].entName);
                         n++;
@@ -827,12 +795,13 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
     } else if (inCommand[0] == 'r') {/*chiama il report*/
 
-        Report(relTable, entTable);
+        Report(relTable);
 
 
         return true;
 
     } else if (inCommand[0] == 'e') {/*termino*/ return false; }
+
 }
 
 //-----HELPERS----------------------------------------------------------------------------------------------------------
@@ -1070,8 +1039,6 @@ sortCouples(struct RelTable *relHash, int tableIndex, unsigned int relIndex, uns
 //----------------------------------------------------------------------------------------------------------------------
 
 //Data una relazione che ha subito cancellazioni, entro nella tabella hash e fixo il backtrack dell' entità ricercata.
-//TODO Attenzione alle molteplicità
-
 
 static inline void FixBacktrack(char *relName, char *entName, struct EntTable *entHash) {
 
@@ -1095,50 +1062,39 @@ static inline void FixBacktrack(char *relName, char *entName, struct EntTable *e
 
     if (foundEnt != NULL) {
 
-        for (unsigned int j = 0; j < foundEnt->backtrackIndex; j++) {
+        for (unsigned int j = 0; j < foundEnt->backtrackIndex; j++) { //Cerco fra tutti i backtrack
 
-            if (strcmp(foundEnt->backTrack[j].relName, relName) == 0) {
+            if (strcmp(foundEnt->backTrack[j].relName, relName) ==
+                0) { //Decremento il counter ogni volta che fixo il bt.
 
-
-                if (foundEnt->backtrackIndex == 1) { //Se ho una sola chiave e combacia con quella dell' array
-
-                    free(foundEnt->relKeys);
-                    foundEnt->relKeys = NULL;
-                    foundEnt->backtrackIndex = 0;
-
-                } else {
+                foundEnt->backTrack[j].counter--;
 
 
-                    //Ho trovato il backtrack index, lo scambio con l' ultimo e lo inserisco.
-
-                    foundEnt->relKeys[j] = malloc(strlen(foundEnt->relKeys[foundEnt->backtrackIndex - 1]) + 1);
-
-                    strcpy(foundEnt->relKeys[j], foundEnt->relKeys[foundEnt->backtrackIndex - 1]);
-
-                    foundEnt->relKeys[foundEnt->backtrackIndex - 1] = NULL;
-
-                    foundEnt->backtrackIndex--;
-
-                    foundEnt->relKeys = realloc(foundEnt->relKeys, foundEnt->backtrackIndex * sizeof(char *));
-
-
-                }
             }
         }
     }
 }
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
-//Rimuove tutte le entità EntName dalle coppie di relazioni
-//Inoltre deve fixare tutte le backtrack di ogni entità coinvolta
+/*Deve entrare dentro ogni songola relazione puntata dal backtrack e cancellare i riferimenti all' entità che possiede il backtrack, inoltre
+ * deve sistemare poi tutte le relazioni che modifica.
+ *
+ * La funzione viene invocata con il nome dell' entità da eliminare e della relazione da eliminare come parametro
+ *
+ *
+ *
+ *
+ *
+ *
+ */
 
-static inline void bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTable *entHash) {
+static inline void
+bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTable *entHash) {  //TODO Possibile sbocco
 
     int result = 0;
-    unsigned int cplPos = 0;
     struct PlainRel *relFound = NULL;
-    struct Couples *fixedCouples = NULL;
     struct PlainEnt *entFound = NULL;
 
 
@@ -1154,133 +1110,95 @@ static inline void bindRemover(char *relName, char *entName, struct RelTable *re
 
     relFound = RelationLookup(relName, result, relHash);
 
-    for (unsigned int i = 0; i <
-                             relFound->cplNumber; i++) { //Cerco tutte le celle in cui o src o dest sono ent, se non lo sono, incremento il contatore delle celle
+    if (relFound != NULL) { //Se ho trovato la relazione coinvolta, devo eliminare entName dall' array di binded.
 
-        if (strcmp(relFound->binded[i].source, entName) == 0) {//Se l' entità da eliminare è la sorgente
+        if (relFound->binded != NULL) { //Se questa relazione ha dei binded, cerco nei binded il nome che mi interessa
 
-            //Sistemo il backtrack del destinatario
+            for (unsigned int i = 0; i < relFound->cplNumber; i++) {
 
-            if (strlen(relFound->binded[i].destination) > 3) {
+                if (strcmp(relFound->binded[i].source, entName) == 0) {
 
-                result = hash64(relFound->binded[i].destination[1]) * 64 +
-                         hash64(relFound->binded[i].destination[2]); //cerco l' hash dell entita
+                    //Ho trovato una coppia che contiene il nome ricercato come sorgente, devo fixare il BT della destinazione
 
-            } else {
+                    //Devo eliminare la coppia e sistemare il backtrack dell' altra entità.
 
-                result = 4096;
+                    FixBacktrack(relName, relFound->binded[i].destination, entHash);
 
+                    relFound->binded[i].source = malloc(6);
+                    strcpy(relFound->binded[i].source, CONST_TERM);
+
+                    //Ho marcato quella coppia come cancellata, serve poi per la realloc di binded
+
+
+
+
+                } else if (strcmp(relFound->binded[i].destination, entName) == 0) {
+
+                    //Ho trovato una coppia che ha il nome ricercato come destinazione
+
+                    //Elimino la coppia e fixo il BT dell' entità.
+
+                    FixBacktrack(relName, relFound->binded[i].source, entHash);
+
+                    relFound->binded[i].source = malloc(6);
+                    strcpy(relFound->binded[i].source, CONST_TERM);
+
+                    //Marcata la coppia come deleted, serve per realloc
+
+
+                }
             }
 
-            entFound = EntityLookup(relFound->binded[i].destination, result, entHash); //Ptr al destinatario
+            //Finito il For, ho una relfound che dentro i binded avrà delle caselle con il terminatore, queste
+            // devono sparire e deve rimanere l' array binded senza quelle celle
 
-            for (unsigned int j = 0;
-                 j < entFound->backtrackIndex; j++) {//Cerco nel suo backtrack la track di questa particolare relazione
+            unsigned int offSet = 0;
 
-                if (strcmp(entFound->backTrack[j].relName, relName) == 0) {//Ho trovato la casella
+            struct Couples *tempArray = calloc(relFound->cplNumber, sizeof(struct Couples));
 
-                    entFound->backTrack[j].counter--;   //Ne decremento il counter;
-                    cplPos = j;
-                    break;
+            for (unsigned int j = 0; j < relFound->cplNumber; j++) {
+
+                //Devo creare un offset col quale ricopiare tutto l array di binded senza però le celle marcate
+
+                if (strcmp(relFound->binded[j].source, CONST_TERM) == 0) {
+
+                    //Ho trovato una marcata, incremento offset
+
+                    offSet++;
+
+                } else {
+                    //Coppia valida, la salvo nel nuovo array, tenendo conto delle offset celle di coppie invalide da levare.
+
+                    tempArray[j - offSet].source = malloc(strlen(relFound->binded[j].source) + 1);
+                    tempArray[j - offSet].destination = malloc(strlen(relFound->binded[j].destination) + 1);
+
+                    strcpy(tempArray[j - offSet].source, relFound->binded[j].source);
+                    strcpy(tempArray[j - offSet].destination, relFound->binded[j].destination);
 
                 }
 
             }
 
-            //Ora elimino la coppia, alla fine di tutto rialloco l' array.
+            //Finito il for cambio il numero di coppie con quello nuovo meno quelle invalide,libero il vecchio array di binded e ci
+            // inserisco quello nuovo e poi lo ridimensiono
 
-            relFound->binded[i].source = malloc(strlen(CONST_TERM) + 1);
-            relFound->binded[i].destination = malloc(strlen(CONST_TERM) + 1);
+            relFound->cplNumber = relFound->cplNumber - offSet;
 
-            strcpy(relFound->binded[i].source, CONST_TERM);
-            strcpy(relFound->binded[i].destination, CONST_TERM);
+            free(relFound->binded);
 
+            relFound->binded = tempArray;
 
-        } else if (strcmp(relFound->binded[i].destination, entName) ==
-                   0) {//Se l' entità è la destinazione, fixo il backtrack della sorgente
-
-
-            //Sistemo il backtrack della sorgente
-
-            if (strlen(relFound->binded[i].source) > 3) {
-
-                result = hash64(relFound->binded[i].source[1]) * 64 +
-                         hash64(relFound->binded[i].source[2]); //cerco l' hash dell entita
-
-            } else {
-
-                result = 4096;
-
-            }
-
-            entFound = EntityLookup(relFound->binded[i].source, result, entHash);
-
-            for (unsigned int j = 0;
-                 j < entFound->backtrackIndex; j++) {//Cerco nel suo backtrack la track di questa particolare relazione
-
-                if (strcmp(entFound->backTrack[j].relName, relName) == 0) {//Ho trovato la casella
-
-                    entFound->backTrack[j].counter--;   //Ne decremento il counter;
-                    cplPos = j;
-                    break;
-
-                }
-
-            }
-
-
+            relFound->binded = realloc(relFound->binded, relFound->cplNumber * sizeof(struct Couples));
         }
 
-        //Ora devo eliminare la coppia e alla fine di tutto rialloco l' array
-
-        relFound->binded[i].source = malloc(strlen(CONST_TERM) + 1);
-        relFound->binded[i].destination = malloc(strlen(CONST_TERM) + 1);
-
-        strcpy(relFound->binded[i].source, CONST_TERM);
-        strcpy(relFound->binded[i].destination, CONST_TERM);
-
-
     }
-
-    //Qui devo riallocare il binded, rimuovendo però tutte le coppie con il terminatore
-
-
-    unsigned int offSet = 1; //Indice per spostare in coda.
-
-    struct Couples *tempBind = malloc(relFound->cplNumber * sizeof(struct Couples));
-
-    for (unsigned int k = 0; k < relFound->cplNumber; k++) {//Per tutti i binded
-
-        //Se trovo coppie di non terminatori le ricopio, se trovo dei terminatori incremento l'offset e copio la successiva
-
-        if (strcmp(relFound->binded[k].source, CONST_TERM) == 0) {
-
-            offSet++;
-
-
-        }else{
-
-            tempBind[k].source = malloc(strlen(relFound->binded[k].source)+1);
-            tempBind[k].destination = malloc(strlen(relFound->binded[k].destination)+1);
-
-
-
-
-
-
-        }
-
-
-    }
-
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 //Deve prendere in input un ptr a entità, cercare se esiste o meno una track per una data relazione, e aggiungerla se manca o incrementare un counter se è gia presente
 
-static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {
+static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO Sembra corretta, ma non lo è
 
     bool trackFound = false;
     unsigned int index = 0;
@@ -1293,10 +1211,7 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {
             trackFound = true;
             index = i;
             break;
-
         }
-
-
     }
 
     if (trackFound == true) { //Esiste gia in memoria la relazione, incremento il counter
@@ -1335,8 +1250,7 @@ int main() {
     }
 }
 
-/* TODO
- *        Problemi con gli indci dei binded e degli array, rileggere il codice tutto in generale.
- *      1 ricorda nelle delete di impostare questo array a null se finiscono le entità, altrimenti si fotte
- *      3 Devo controllare di aver messo bene i return, perchè devo poter uscire dai for appena una condizione non è soddisfatta.
+/* TODO LE addent/rel sono giuste, le delete sono un po da riscrivere, perchè non sempre funzionano.
+ *      Devo controllare quindi Delent, DelRel, FIxBT e BindRemover.
+ *
  */
