@@ -913,9 +913,6 @@ static inline struct PlainEnt *EntityLookup(char *inputName, unsigned int tableH
     }
     return NULL;
 }
-
-
-
 //----------------------------------------------------------------------------------------------------------------------
 
 static inline struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct RelTable *relHash) {
@@ -931,9 +928,6 @@ static inline struct PlainRel *RelationLookup(char *inputName, unsigned int tabl
 
     return NULL;
 }
-//----------------------------------------------------------------------------------------------------------------------
-
-
 //----------------------------------------------------------------------------------------------------------------------
 //Entro nella hash a tableindex, accedo alla relazione a relIndex e scorro tutte le coupleNum coppie.
 //Mentre scorro mi creo un array di destinatari in ordine alfabetico e intanto conteggio
@@ -1120,11 +1114,6 @@ static inline void FixBacktrack(char *relName, char *entName, struct EntTable *e
  *
  * La funzione viene invocata con il nome dell' entità da eliminare e della relazione da eliminare come parametro
  *
- *
- *
- *
- *
- *
  */
 
 static inline void
@@ -1290,7 +1279,24 @@ int main() {
     }
 }
 
-/* TODO LE addent/rel sono giuste, le delete sono un po da riscrivere, perchè non sempre funzionano.
- *      Devo controllare quindi Delent, DelRel, FIxBT e BindRemover.
+/*
+ * //TODO Il progetto funziona, ma al posto delle continue copie di stringhe devo spostare tutto su indirizzi
+ *
+ * Quindi:
+ *
+ * Addent deve salvare non più una stringa dentro la hash, ma deve allocare la stringa in un settore di memoria casuale, e poi
+ * nella hash salvare il riferimento a tale stringa come entità, mantenendo sempre la stessa struttura del codice
+ *
+ * Addrel deve salvare il nome della relazione prima in una zona di memoria e solo successivamente cercare una posizione
+ * in cui salvarlo in maniera ordinata. Il backtracking viene sempre eseguito allo stesso modo, ma ora le stringhe diventano ptr
+ *
+ * Delent cerca l' entità nella hash tramite i ptr, ne elimina il backtracking, libera il ptr a stringa e cancella l' entità
+ *
+ * Delrel cerca una relazione, cerca la coppia di entità al suo interno e ne elimina i riferimenti MA non i puntatori.
+ *
+ * Il fix tramite indirizzi dovrebbe salvare un pochino di memoria, ma non è detto che mi permetta di passare i test.
+ *
+ *
+ *
  *
  */
