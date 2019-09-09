@@ -769,17 +769,20 @@ static inline void Report(struct RelTable *relHash) {
 
                     printf(";");
 
+
                 }
 
             }
         }
     }
 
+
     if (isEmpty) {
         printf("none");  //Stampa none se non ho relazioni
     }
 
     printf("\n");
+
 
 }
 
@@ -1296,6 +1299,30 @@ int main() {
  *
  * Il fix tramite indirizzi dovrebbe salvare un pochino di memoria, ma non è detto che mi permetta di passare i test.
  *
+ * Un ulteriore fix potrebbe essere quello di creare nei binded un array di destinatari.
+ *
+ * Ad ogni addrelverifico se ho la relazione, se la ho entro e cerco nell' array di binded il destinatario, array che ora contiene
+ * una stringa (appunto il dest) e un array di sorgenti, e poi se trovo il destinatario verifico che non
+ * sia gia legato alla sorgente in input. Questa struttura a matrice a più dimensioni evita copie inutili di indirizzi
+ * ed è il minimo che serve per gestire il programma
+ *
+ * Cosi al posto di fare un report pesante, basta contare quante entità ci sono sotto il destinatario per sapere chi è il maggior
+ * ricevente, e risparmio continue copie di destinatari inutili.
+ *
+ *
+ * 
+ *
+ * Tabella di marcia ideale:
+ *
+ *
+ * Domattina entro pranzo aver riscritto almeno tutte le strutture dati, le inizializzazioni, le add e il report, cosi da vedere se
+ * passo di nuovo monotone e se è migliorato qualcosa
+ *
+ * Domani entro cena avere una prima implementazione di cancellazioni, per capire se può funzionare il tutto
+ *
+ *
+ * Idealmente avendo lo scheletro di programma che passa 4 test su 6 qua sopra dovrei essere in grado di riadattarlo in
+ * una giornata.
  *
  *
  *
