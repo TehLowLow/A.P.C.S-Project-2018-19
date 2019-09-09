@@ -20,8 +20,6 @@ struct PlainEnt {
 
     char *entName; //Nome dell' entità
 
-    unsigned int destCounter; //Int per il conteggio di sorgenti nel report. TODO Potrebbe essere inutile
-
     struct Track *backTrack;
 
     unsigned int backtrackIndex; //Conteggio dim array
@@ -507,6 +505,9 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
         //Eliminata ogni traccia di deleteEnt dalle relazioni, devo eliminarla dalla hashtable
 
+        //Cerco l' indice a cui compare l' entità, alloco un altro array, e poi ricopio nel nuovo array tutte le entità
+        // esclusa quella da eliminare
+
         for (unsigned int j = 0; j < entHash[hashEnt].entNumber; j++) {
 
             if (strcmp(toDelete, entHash[hashEnt].entEntries[j].entName) == 0) {
@@ -538,7 +539,14 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
                     //Sono in mezzo, scambio questa ent con la coda e la elimino.
 
-                    entHash[hashEnt].entEntries[j] = entHash[hashEnt].entEntries[entHash[hashEnt].entNumber - 1];
+                    entHash[hashEnt].entEntries[j].backtrackIndex = entHash[hashEnt].entEntries[
+                            entHash[hashEnt].entNumber - 1].backtrackIndex;
+
+                    entHash[hashEnt].entEntries[j].backTrack = entHash[hashEnt].entEntries[entHash[hashEnt].entNumber -
+                                                                                           1].backTrack;
+
+                    strcpy(entHash[hashEnt].entEntries[j].entName,
+                           entHash[hashEnt].entEntries[entHash[hashEnt].entNumber - 1].entName);
 
                     entHash[hashEnt].entNumber--;
 
@@ -610,7 +618,7 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
     relFound = RelationLookup(rel, tableIndex, relHash); //Cerco la relazione nella hash
 
-    if (relFound->binded != NULL) {//Se ho delle coppie sotto la relazione
+    if (relFound != NULL && relFound->binded != NULL) {//Se ho delle coppie sotto la relazione
 
         for (unsigned int i = 0; i < relFound->cplNumber; i++) { //Per ogni coppia che ho
 
@@ -1068,6 +1076,7 @@ static inline void FixBacktrack(char *relName, char *entName, struct EntTable *e
                 0) { //Decremento il counter ogni volta che fixo il bt.
 
                 foundEnt->backTrack[j].counter--;
+                break;
 
 
             }
@@ -1209,9 +1218,11 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO
             0) { //Se trovo la relazione gia nella lista salvo la posizione
 
             trackFound = true;
-            index = i;
             break;
         }
+
+        index++;
+
     }
 
     if (trackFound == true) { //Esiste gia in memoria la relazione, incremento il counter
@@ -1221,7 +1232,7 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO
 
     } else { //Non esiste, la aggiungo in coda
 
-        toAdd->backtrackIndex++;
+        toAdd->backtrackIndex = index + 1;
 
         toAdd->backTrack = realloc(toAdd->backTrack, toAdd->backtrackIndex * sizeof(struct Track));
 
