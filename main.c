@@ -388,6 +388,8 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
         while (bufferCounter < ordered) { //Copio tutti quelli prima del posto in cui inserire la nuova struct
 
+            buffer[bufferCounter].relName = malloc(
+                    strlen(relHashTable[tableIndex].relEntries[bufferCounter].relName) + 1);
             strcpy(buffer[bufferCounter].relName,
                    relHashTable[tableIndex].relEntries[bufferCounter].relName);  //Copio il nome
             buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber; //Copio il numero di coppie
@@ -398,6 +400,8 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
         }
 
         bufferCounter = ordered; //Inserisco la nuova struct. La copia è identica a quella scritta sopra e a quella successiva.
+
+        buffer[bufferCounter].relName = malloc(strlen(inputRel) + 1);
 
         strcpy(buffer[bufferCounter].relName, inputRel);
         buffer[bufferCounter].cplNumber = 1;
@@ -422,6 +426,10 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
         relHashTable[tableIndex].relEntries = buffer;  //Gli assegno il ptr del nuovo array ordinato
 
         //Ci aggiungo la nuova relazione
+
+
+        relHashTable[tableIndex].relEntries[ordered].binded[0].source = malloc(strlen(srcFound->entName) + 1);
+        relHashTable[tableIndex].relEntries[ordered].binded[0].destination = malloc(strlen(destFound->entName) + 1);
 
         strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].source, srcFound->entName);
         strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].destination, destFound->entName);
@@ -508,55 +516,63 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
         //Cerco l' indice a cui compare l' entità, alloco un altro array, e poi ricopio nel nuovo array tutte le entità
         // esclusa quella da eliminare
 
+        unsigned int order = 0;
+
         for (unsigned int j = 0; j < entHash[hashEnt].entNumber; j++) {
 
-            if (strcmp(toDelete, entHash[hashEnt].entEntries[j].entName) == 0) {
-
-                //Ho trovato l' entità in tabella, devo sistemarla
-                //Se l' entità sta in fondo alla hash, basta semplicemente riallocare
-
-                if (entHash[hashEnt].entNumber == 1) {
-
-                    free(entHash[hashEnt].entEntries);
-                    entHash[hashEnt].entNumber = 0;
-                    entHash[hashEnt].entEntries = NULL;
-
-                    break;
+            if (strcmp(entHash[hashEnt].entEntries[j].entName, deleteEnt->entName) == 0) {
 
 
-                } else if (j == entHash[hashEnt].entNumber - 1) {
-
-                    //Sono in coda, libero e rialloco
-
-                    free(entHash[hashEnt].entEntries[j].backTrack);
-
-                    entHash[hashEnt].entNumber--;
-
-                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries, entHash[hashEnt].entNumber);
+                break;
 
 
-                } else {
-
-                    //Sono in mezzo, scambio questa ent con la coda e la elimino.
-
-                    entHash[hashEnt].entEntries[j].backtrackIndex = entHash[hashEnt].entEntries[
-                            entHash[hashEnt].entNumber - 1].backtrackIndex;
-
-                    entHash[hashEnt].entEntries[j].backTrack = entHash[hashEnt].entEntries[entHash[hashEnt].entNumber -
-                                                                                           1].backTrack;
-
-                    strcpy(entHash[hashEnt].entEntries[j].entName,
-                           entHash[hashEnt].entEntries[entHash[hashEnt].entNumber - 1].entName);
-
-                    entHash[hashEnt].entNumber--;
-
-                    entHash[hashEnt].entEntries = realloc(entHash[hashEnt].entEntries, entHash[hashEnt].entNumber *
-                                                                                       sizeof(struct PlainEnt));
-
-
-                }
             }
+
+            order++;  //Order salva l' indice dell' entità da eliminare
+
+
+
         }
+
+
+        unsigned int i = 0;
+
+        struct PlainEnt *newEntities = calloc(entHash[hashEnt].entNumber - 1, sizeof(struct PlainEnt));
+
+        while (i < order) {
+
+            //Ricopio le entità paro paro
+
+            newEntities[i].backtrackIndex = entHash[hashEnt].entEntries[i].backtrackIndex;
+            newEntities[i].backTrack = entHash[hashEnt].entEntries[i].backTrack;
+            newEntities[i].entName = malloc(strlen(entHash[hashEnt].entEntries[i].entName) + 1);
+            strcpy(newEntities[i].entName, entHash[hashEnt].entEntries[i].entName);
+
+            i++;
+
+
+        }
+
+        i = order + 1;
+
+        while (i < entHash[hashEnt].entNumber) {
+
+            newEntities[i - 1].backtrackIndex = entHash[hashEnt].entEntries[i].backtrackIndex;
+            newEntities[i - 1].backTrack = entHash[hashEnt].entEntries[i].backTrack;
+            newEntities[i - 1].entName = malloc(strlen(entHash[hashEnt].entEntries[i].entName) + 1);
+            strcpy(newEntities[i - 1].entName, entHash[hashEnt].entEntries[i].entName);
+
+            i++;
+
+        }
+
+        entHash[hashEnt].entNumber--;
+
+        free(entHash[hashEnt].entEntries);
+
+        entHash[hashEnt].entEntries = newEntities;
+
+
     }
 }
 
@@ -637,11 +653,23 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
                     break;
 
 
-                } else {
+                } else if (i == relFound->cplNumber - 1) {
 
+                    //Se è l' ultima coppia basta solo freeare e riallocare
 
                     free(relFound->binded[i].source);
                     free(relFound->binded[i].destination);
+
+                    relFound->cplNumber--;
+
+                    relFound->binded = realloc(relFound->binded, relFound->cplNumber * sizeof(struct Couples));
+
+                    break;
+
+
+                } else {
+
+
 
                     //Alloco la dim della source e della dest in coda, sovrascrivo, libero la coda e rialloco
                     relFound->binded[i].source = malloc(
@@ -1201,6 +1229,7 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
         }
 
     }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
