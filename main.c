@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <malloc.h>
-#include <stdatomic.h>
 
 
 typedef enum Bool {
@@ -11,59 +9,44 @@ typedef enum Bool {
 
 struct EntTable {
 
-    unsigned int entNumber;  //Numero di entità hashate sotto questo indice
-
-    struct PlainEnt *entEntries; //Array che contiene tutte le entità hashate sotto un indice
+    unsigned int entNumber;  //Number of entities under a key
+    struct PlainEnt *entEntries; //Array containing all the entities under a key
 };
-
 
 struct PlainEnt {
 
-    char *entName; //Nome dell' entità
-
-    struct Track *backTrack;
-
-    unsigned int backtrackIndex; //Conteggio dim array
+    char *entName; //Entity name
+    struct Track *backTrack; //Array of backtrack
+    unsigned int backtrackIndex; //Number of backtracks
 };
-
 
 struct RelTable {
 
-    unsigned int relNumber; //Numero di entità hashate sotto questo indice
-
-    struct PlainRel *relEntries; //Array che contiene tutte le relazioni hashate sotto un indice
+    unsigned int relNumber; //Number of relations under a key
+    struct PlainRel *relEntries; //Array of relations
 };
-
 
 struct PlainRel {
 
-    char *relName; //Nome della relazione hashata sotto questo indice
-
-    unsigned int cplNumber; //Numero di elementi(a coppie) presenti nell' array binded
-
-    struct Couples *binded;  //Array di coppie di entità collegate dalla relazione
+    char *relName; //Name of the relation in the array
+    unsigned int cplNumber; //Number of recivers for the relation
+    struct Couples *binded;  //Array of entities binded by the  relation
 };
 
+struct Couples { //Data type that binds a destination entity with all the sources
 
-struct Couples {  //coppia sorgente destinazione collegata da una relazione
-
-    char **source; //Array di sorgenti
-
-    char *destination; //nome della destinazione a cui tutte e sorgenti son legate
-
-    unsigned int srcNumber;
+    char **source; //Array of sources
+    char *destination; //Name of the reciver in the relations
+    unsigned int srcNumber; //Number of sources for a reciver
 };
-
 
 struct Track {
 
-    char *relName;
-    unsigned int counter;
-
-
+    char *relName;        //Name of the relation for backtracking
+    unsigned int counter;  //Number of times this entity shows up in the relation
 };
 
-char *CONST_TERM = "@@@@";
+
 //-----PROTOTYPES-------------------------------------------------------------------------------------------------------
 
 static inline int hash64(char input);
@@ -71,9 +54,6 @@ static inline int hash64(char input);
 static inline struct PlainEnt *EntityLookup(char *inputName, unsigned int tableHash, struct EntTable *entHash);
 
 static inline struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct RelTable *relHash);
-
-static inline struct ReportEnt *
-sortCouples(struct RelTable *relHash, int tableIndex, unsigned int relIndex, unsigned int coupleNum);
 
 static inline void FixBacktrack(char *relName, char *entName, struct EntTable *entHash);
 
@@ -83,94 +63,78 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName);
 
 //-----MEMORY INIT------------------------------------------------------------------------------------------------------
 
-//Questa funzione crea la tabella di hashing per le entità. Gestisce 64*64 indici (hashing numerico per i primi due
-// caratteri) più una colonna speciale in caso di entità con nome composto da 1 carattere.
-
-
+//This function is responsible of the initialization of the hashtable used to store the entities
 struct EntTable *initEntHash() {
 
 
     struct EntTable *hash = NULL;
 
     hash = calloc(4097, sizeof(struct EntTable));
-
     return hash;
-
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//Questa funzione crea la tabella di hashing per le relazioni. Gestisce 64*64 indici (hashing numerico per i primi due
-// caratteri) più una colonna speciale in caso di relazioni con nome composto da 1 carattere.
-
+//This function initializes the hashtable for the relations
 struct RelTable *initRelHash() {
 
     struct RelTable *hash = NULL;
 
     hash = calloc(4097, sizeof(struct RelTable));
-
     return hash;
-
 }
 
 //-----COMMANDS---------------------------------------------------------------------------------------------------------
 
-//Questa funzione viene chiamata quando in input leggo il comando addent, ne calcolo l hash, e aggiungo in coda
-//l' entità passata dal comando, sse questa non è gia presente nella tabella.
+//This function is invoked when the parser encounters the "addent" command. The entity is then read from stdin,
+//hashed with the main rule of this software and then placed last under the key it belongs. There are no rules
+//of sorting colliding entities under a certain key.
+//The command is valid only if the ent is not already in the hash.
 
-
-static inline void HashInputEnt(struct EntTable *hashTable) {  //TODO Funzione OK, non necessita cambi.
+static inline void HashInputEnt(struct EntTable *hashTable) {
 
     char *inputEnt = NULL;
     int tableIndex;
     struct PlainEnt *result = NULL;
 
-
-    scanf("%ms", &inputEnt);      //Leggo l' entità
+    scanf("%ms", &inputEnt);    //read the entity from stdin
 
     if (strlen(inputEnt) > 3) {
-        tableIndex = hash64(inputEnt[1]) * 64 + hash64(inputEnt[2]);   //Se ha più di 1 carattere, hashing
+        tableIndex = hash64(inputEnt[1]) * 64 + hash64(inputEnt[2]);
     } else {
-        tableIndex = 4096;  //Altrimenti array di singletons
+        tableIndex = 4096;
     }
 
+    //After hashing the software looks for the entity's place in the table
     result = EntityLookup(inputEnt, tableIndex, hashTable);
 
-    if (result == NULL) { //Se la tabella hash non ha ancora entità hashate con quella chiave, alloco
+    if (result == NULL) { //If the key is empty, hash first, saving all the data in the table
 
         if (hashTable[tableIndex].entEntries == NULL) {  //TODO 1
 
             hashTable[tableIndex].entNumber = 1;
-
             hashTable[tableIndex].entEntries = calloc(1, sizeof(struct PlainEnt));
-
             hashTable[tableIndex].entEntries[0].entName = malloc(strlen(inputEnt) + 1);
-
             strcpy(hashTable[tableIndex].entEntries[0].entName, inputEnt);
-
             hashTable[tableIndex].entEntries->backtrackIndex = 0;
-
             hashTable[tableIndex].entEntries->backTrack = NULL;
 
 
         } else {
+            //The key is not empty, we have a collision. Realloc the array with one more space and save the entity last
 
             hashTable[tableIndex].entNumber++;
 
             unsigned int temp = hashTable[tableIndex].entNumber;
 
-            //Aggiungo una casella in cui salvare l' entità e la aggiungo
-
             hashTable[tableIndex].entEntries = realloc(hashTable[tableIndex].entEntries,
                                                        temp * sizeof(struct PlainEnt));
 
-
+            //This malloc is needed to have a valid address where to store the string
             hashTable[tableIndex].entEntries[temp - 1].entName = malloc(
-                    strlen(inputEnt) + 1); //cerco un indirizzo per la stringa. Segfaulta altrimenti
+                    strlen(inputEnt) + 1);
 
             strcpy(hashTable[tableIndex].entEntries[temp - 1].entName, inputEnt);
-
             hashTable[tableIndex].entEntries[temp - 1].backtrackIndex = 0;
             hashTable[tableIndex].entEntries[temp - 1].backTrack = NULL;
 
@@ -179,8 +143,10 @@ static inline void HashInputEnt(struct EntTable *hashTable) {  //TODO Funzione O
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-//Questa funzione viene chiamata quando in input leggo il comando addrel, ne calcolo l hash, e aggiungo la realzione
-//passata dal comando, sse questa non è gia presente nella tabella.
+//This function is invoked when the parser encounters an "addrel" command from the stdin.
+//Then proceeds to hash the relation and store it under its key.
+//The command addrel is valid only if the 2 ents are in the Entities hash, and then either stores the newly encountered
+//relation or if the rel is already in memory stores the new bind, again only if the bind is not already there.
 
 static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *entHashTable) {
 
@@ -192,29 +158,30 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
     int tableIndex = 0;
     struct PlainEnt *srcFound = NULL;
     struct PlainEnt *destFound = NULL;
-
     unsigned int ordered;
     unsigned int bufferCounter;
 
-    //Leggo i parametri del comando
+    //Read the params from stdin
 
     scanf("%ms", &src);
     scanf("%ms", &dest);
     scanf("%ms", &inputRel);
 
-    //Per prima cosa verifico che le due entità esistano nella EntTable
+    //Verification of the entities
 
-    if (strlen(src) > 3) {  //Calcolo l' hash
+    if (strlen(src) > 3) {
         hashedSrc = hash64(src[1]) * 64 + hash64(src[2]);
     } else {
         hashedSrc = 4096;
     }
 
-    srcFound = EntityLookup(src, hashedSrc, entHashTable); //Cerco la sorgente
+    srcFound = EntityLookup(src, hashedSrc, entHashTable);
 
-    if (srcFound != NULL) { //Se non trovo la sorgente è inutile cercare la dest, tanto poi scarterei il comando
+    //After finding if there is the source, the function look fo the destination
 
-        if (strlen(dest) > 3) {  //Cerco la destinazione
+    if (srcFound != NULL) {
+
+        if (strlen(dest) > 3) {
             hashedDest = hash64(dest[1]) * 64 + hash64(dest[2]);
         } else {
             hashedDest = 4096;
@@ -225,7 +192,7 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
     }
 
 
-    //Ho trovato entrambe, proseguo. Se non trovo entrambe non faccio nulla.
+    //At this point if both the ents are valid, the function proceeds to hash the relation
 
     if (srcFound != NULL && destFound != NULL) {
 
@@ -238,16 +205,19 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
             tableIndex = 4096;
         }
 
-        //Con l' hash di dove dovrebbe collocarsi questa relazione, verifico se effettivamente è gia stata caricata.
+        //With the hash key, we look for the input relation, as no duplicates are allowed
 
         for (unsigned int a = 0;
-             a < relHashTable[tableIndex].relNumber; a++) { // a è l' indice di relazione nell' array della hash
+             a < relHashTable[tableIndex].relNumber; a++) {
 
             if (strcmp(relHashTable[tableIndex].relEntries[a].relName, inputRel) == 0) {
-                //L'ho trovata, verifico se ha gia delle coppie oppure se questa è la prima
+
+                //Relation found in memory, the function looks for duplicates.
 
                 if (relHashTable[tableIndex].relEntries[a].binded ==
-                    NULL) {//Se questa coppia è la prima, alloco e aggiungo in testa.         //TODO 1
+                    NULL) {
+
+                    //There are no other couples (due to deletions). Save this new rel first.
 
                     relHashTable[tableIndex].relEntries[a].cplNumber = 1;
                     relHashTable[tableIndex].relEntries[a].binded = calloc(1, sizeof(struct Couples));
@@ -259,26 +229,21 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                     relHashTable[tableIndex].relEntries[a].binded[0].source[0] = malloc(strlen(srcFound->entName) + 1);
                     strcpy(relHashTable[tableIndex].relEntries[a].binded[0].source[0], srcFound->entName);
 
-
-                    //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
-
+                    //Add the backtrack for this relation to the entities.
                     AddBacktrack(srcFound, inputRel);
                     AddBacktrack(destFound, inputRel);
-
-
                     return;
 
                 } else {
 
-                    //C'è gia gente allocata, devo verificare che questa coppia non esista ancora per quella relazione,
-                    // altrimenti non faccio nulla.
+                    //This relation is not the first one.
+                    //First the function looks for duplications
 
                     for (unsigned int b = 0; b < relHashTable[tableIndex].relEntries[a].cplNumber; b++) {
-                        // b è l' indice di coppia per verificare se la relazione gia esiste
 
                         if (strcmp(relHashTable[tableIndex].relEntries[a].binded[b].destination, dest) == 0) {
 
-                            //trovo la dest, vedo se c è anche la src
+                            //Found one ent, the destination, now evaluates the sources.
 
                             for (unsigned int i = 0;
                                  i < relHashTable[tableIndex].relEntries[a].binded[b].srcNumber; i++) {
@@ -286,14 +251,14 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                                 if (strcmp(relHashTable[tableIndex].relEntries[a].binded[b].source[i],
                                            srcFound->entName) == 0) {
 
-                                    //Ho trovato anche la src, ritorno senza fare nulla
+                                    //Source found, this command is a duplicate, return
                                     return;
 
                                 }
 
                             }
 
-                            //Se dopo questo for la src non esiste, devo aggiungerla in coda.
+                            //The source is not in the array, valid command and add source last inside the array.
                             relHashTable[tableIndex].relEntries[a].binded[b].srcNumber++;
 
                             unsigned int temp = relHashTable[tableIndex].relEntries[a].binded[b].srcNumber;
@@ -307,20 +272,15 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                             strcpy(relHashTable[tableIndex].relEntries[a].binded[b].source[temp - 1],
                                    srcFound->entName);
 
-                            //Aggiungo bt
-
+                            //Adding backtrack for this relation
                             AddBacktrack(srcFound, inputRel);
                             AddBacktrack(destFound, inputRel);
-
                             return;
-
                         }
                     }
 
-                    //Non esiste, devo aggiungere la coppia di entità.
-
-                    //Primo major fix: L' aggiunta della couple deve avvenire in ordine
-
+                    //The function hasn't found the destination, now it scans the array and finds the lexicographical order
+                    //where to place this destination.
 
                     unsigned int cplNumbTemp = relHashTable[tableIndex].relEntries[a].cplNumber;
                     unsigned int counter = 0;
@@ -335,14 +295,12 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                         }
 
                         counter++;
-
-
                     }
 
-                    //Counter contiene la posizione in cui va piazzata la nuova coppia
+                    //The value of counter is the cell in which the new dest should go.
+                    //Realloc, places the new dest and then fixes the array.
 
                     relHashTable[tableIndex].relEntries[a].cplNumber++;
-
 
                     struct Couples *tempCouples = calloc(relHashTable[tableIndex].relEntries[a].cplNumber,
                                                          sizeof(struct Couples));
@@ -351,7 +309,7 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
                     while (temp < counter) {
 
-                        //Copia in ordine
+                        //The first counter-1 dest are the same, simple copy.
 
                         tempCouples[temp].destination = malloc(
                                 strlen(relHashTable[tableIndex].relEntries[a].binded[temp].destination) + 1);
@@ -363,9 +321,9 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                         tempCouples[temp].source = relHashTable[tableIndex].relEntries[a].binded[temp].source;
 
                         temp++;
-
-
                     }
+
+                    //Insertion of the new dest
 
                     temp = counter;
 
@@ -380,7 +338,7 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
                     while (temp < relHashTable[tableIndex].relEntries[a].cplNumber) {
 
-                        //Copia le vecchie sfasate di uno
+                        //Copy of the other dests.
 
                         tempCouples[temp].destination = malloc(
                                 strlen(relHashTable[tableIndex].relEntries[a].binded[temp - 1].destination) + 1);
@@ -392,68 +350,53 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
                         tempCouples[temp].source = relHashTable[tableIndex].relEntries[a].binded[temp - 1].source;
 
                         temp++;
-
-
                     }
 
                     relHashTable[tableIndex].relEntries[a].binded = tempCouples;
 
-                    //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
+                    //Backtracking for this relation
                     AddBacktrack(srcFound, inputRel);
                     AddBacktrack(destFound, inputRel);
 
                     return;
 
                 }
-
-
             }
         }
 
-        //Qua devo invece aggiungere la nuova relazione che non ho mai incontrato, e la aggiungo gia in ordine
-
-
+        //At this point the function hasn't found the input relation, and needs to sort it and place it into the hash.
 
         if (relHashTable[tableIndex].relNumber == 0) {
 
-            // Se la table è vuota inserisco subito in testa, e aggiungo le due entità
+            //If the hash is empty this relation is saved in first place.
 
             relHashTable[tableIndex].relNumber++;
-
             relHashTable[tableIndex].relEntries = calloc(relHashTable[tableIndex].relNumber,
-                                                         sizeof(struct PlainRel));  //Alloco la prima cella di entries e la nomino
+                                                         sizeof(struct PlainRel));
 
             relHashTable[tableIndex].relEntries[0].relName = malloc(strlen(inputRel) + 1);
-
             strcpy(relHashTable[tableIndex].relEntries[0].relName, inputRel);
-
             relHashTable[tableIndex].relEntries[0].cplNumber++;
 
+            //Then we save the new couple
+
             relHashTable[tableIndex].relEntries[0].binded = calloc(1,
-                                                                   sizeof(struct Couples)); // Alloco la prima cella di Coppie e le assegno
+                                                                   sizeof(struct Couples));
 
             relHashTable[tableIndex].relEntries[0].binded[0].destination = malloc(strlen(destFound->entName) + 1);
-
             strcpy(relHashTable[tableIndex].relEntries[0].binded[0].destination, destFound->entName);
-
             relHashTable[tableIndex].relEntries[0].binded[0].srcNumber = 1;
-
             relHashTable[tableIndex].relEntries[0].binded[0].source = malloc(sizeof(char *));
-
             relHashTable[tableIndex].relEntries[0].binded[0].source[0] = malloc(strlen(srcFound->entName) + 1);
-
             strcpy(relHashTable[tableIndex].relEntries[0].binded[0].source[0], srcFound->entName);
 
-            //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
-
-
+            //Backtracking for the relation
             AddBacktrack(srcFound, inputRel);
             AddBacktrack(destFound, inputRel);
             return;
-
         }
 
-        //Se la table non è vuota, devo cercare l' indice
+        //If this relation is not the first, the function sorts it and places it in order.
 
         ordered = 0;
 
@@ -466,11 +409,10 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
             }
 
             ordered++;
-
         }
 
 
-        //ordered ora contiene l' indice di dove devo piazzare la nuova relazione, devo riallocare
+        //Order is the index where the relation will be placed
 
         relHashTable[tableIndex].relNumber++;
 
@@ -478,31 +420,34 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
         bufferCounter = 0;
 
-        while (bufferCounter < ordered) { //Copio tutti quelli prima del posto in cui inserire la nuova struct
+        //The first ordered-1 relations are copied over
+
+        while (bufferCounter < ordered) {
 
             buffer[bufferCounter].relName = malloc(
                     strlen(relHashTable[tableIndex].relEntries[bufferCounter].relName) + 1);
             strcpy(buffer[bufferCounter].relName,
-                   relHashTable[tableIndex].relEntries[bufferCounter].relName);  //Copio il nome
-            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber; //Copio il numero di coppie
-            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded; //Copio il ptr all' array di coppie
+                   relHashTable[tableIndex].relEntries[bufferCounter].relName);
+            buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter].cplNumber;
+            buffer[bufferCounter].binded = relHashTable[tableIndex].relEntries[bufferCounter].binded;
 
-            bufferCounter++; //Incremento e ripeto
+            bufferCounter++;
 
         }
 
-        bufferCounter = ordered; //Inserisco la nuova struct. La copia è identica a quella scritta sopra e a quella successiva.
+        //The new relation is saved
+        bufferCounter = ordered;
 
         buffer[bufferCounter].relName = malloc(strlen(inputRel) + 1);
-
         strcpy(buffer[bufferCounter].relName, inputRel);
         buffer[bufferCounter].cplNumber = 1;
         buffer[bufferCounter].binded = calloc(1, sizeof(struct Couples));
 
-
         bufferCounter++;
 
-        while (bufferCounter < relHashTable[tableIndex].relNumber) { //Copio tutti i successivi
+        //The others relations are copied over.
+
+        while (bufferCounter < relHashTable[tableIndex].relNumber) {
 
             strcpy(buffer[bufferCounter].relName, relHashTable[tableIndex].relEntries[bufferCounter - 1].relName);
             buffer[bufferCounter].cplNumber = relHashTable[tableIndex].relEntries[bufferCounter - 1].cplNumber;
@@ -513,18 +458,21 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
 
         }
 
-        free(relHashTable[tableIndex].relEntries); //Libero il vecchio array precedente all' inserimento
+        //Free old memory
+        free(relHashTable[tableIndex].relEntries);
 
-        relHashTable[tableIndex].relEntries = buffer;  //Gli assegno il ptr del nuovo array ordinato
+        //Save the new array
+        relHashTable[tableIndex].relEntries = buffer;
 
-        //Ci aggiungo la nuova relazione
+        //Adding the sub data for the relation
         relHashTable[tableIndex].relEntries[ordered].binded[0].srcNumber = 1;
         relHashTable[tableIndex].relEntries[ordered].binded[0].destination = malloc(strlen(destFound->entName) + 1);
         strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].destination, destFound->entName);
         relHashTable[tableIndex].relEntries[ordered].binded[0].source = malloc(sizeof(char *));
         relHashTable[tableIndex].relEntries[ordered].binded[0].source[0] = malloc(strlen(srcFound->entName) + 1);
         strcpy(relHashTable[tableIndex].relEntries[ordered].binded[0].source[0], srcFound->entName);
-        //Aggiungo il nome della relazione al backtracking delle entità  //TODO testare
+
+        //Adding backtrack
         AddBacktrack(srcFound, inputRel);
         AddBacktrack(destFound, inputRel);
 
@@ -532,39 +480,19 @@ static inline void HashInputRel(struct RelTable *relHashTable, struct EntTable *
     }
 }
 
-/*Ordinamento Lessicografico
+/*
+ * Lexicographical sorting is achieved by using strcmp.
  *
- * Uso strcmp
- *
- * Entro nell' array e faccio strcmp della stringa in input con tutte le stringhe in memoria,al primo indice in cui
- * ho minore scorrendo dall' inizio esco dal ciclo e so che devo infilarla li.
- *
- *
- * Funzionamento generale:
- *
- *
- * leggo e salvo;
- * entro nella tabella sotto l' hash che calcolo;
- * scorro l' array dall' inizio facendo
- *
- *
- * (for every_relation){
- * if(strcmp(input, hashtable)<0){la parola va in quell' indice, return indice}}
- *
- *
- * Non uso realloc, perchè mi copia anche i dati, ma devo pensare a una mia realloc, che copi i dati prima dell' indice
- * uguali, all' indice inserisca la nuova relazione, e poi copi i dati successivi sfasati di un indice.
- *
+ * If strcmp(input, hashed relation) ==0 then this means that the strings are equals.
+ * If strcmp(input, hashed relation) <0 it means that input has a value less than hashed, thus making it lexicographically
+ * before the hashed one.
  */
 
 
-//TODO 3
 //----------------------------------------------------------------------------------------------------------------------
-
-//La delent deve entrare in un entità, leggere tutto il backtrack e eliminare le relazioni con lei come sorgente o destinazione
-
-//Per prima cosa hash e ricerca dell' entità
-
+//This function is responsible of deleting an entity from the hash. This deletion means that also all the occurrences
+//of Ent inside relations need to be erased.
+//The command is valid only if the entity is still in memory at the time of invocation.
 
 static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash) {
 
@@ -585,15 +513,14 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
     }
 
-
     deleteEnt = EntityLookup(toDelete, hashEnt, entHash);
 
-    //Una volta che ho l' entità da cancellare entro nel suo backtrack e inizio a rimuovere tutte le couples per ogni relazione.
+    //Hash Lookup for the entity to be deleted
 
     if (deleteEnt != NULL) {
 
 
-        //Per tutti i backtrack che ha salvato in memoria elimino ogni traccia dell' entità
+        //If the entity exists, the function starts removing all its occurrencies from the relation hash
 
         for (unsigned int i = 0; i < deleteEnt->backtrackIndex; i++) {
 
@@ -601,10 +528,7 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
         }
 
-        //Eliminata ogni traccia di deleteEnt dalle relazioni, devo eliminarla dalla hashtable
-
-        //Cerco l' indice a cui compare l' entità, alloco un altro array, e poi ricopio nel nuovo array tutte le entità
-        // esclusa quella da eliminare
+        //After all the relations have been deleted, the function removes the entity from the table.
 
         unsigned int order = 0;
 
@@ -612,18 +536,14 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
             if (strcmp(entHash[hashEnt].entEntries[j].entName, deleteEnt->entName) == 0) {
 
-
                 break;
-
-
             }
 
-            order++;  //Order salva l' indice dell' entità da eliminare
-
-
-
+            order++;
         }
 
+        //In a slightly inefficient way (my bad, i forgot to fix this monstruosity with the new deletion method,
+        // more of that at the end of the code) the function copies over all the valid entities, leaving behind the deleted one.
 
         unsigned int i = 0;
 
@@ -631,7 +551,6 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
 
         while (i < order) {
 
-            //Ricopio le entità paro paro
 
             newEntities[i].backtrackIndex = entHash[hashEnt].entEntries[i].backtrackIndex;
             newEntities[i].backTrack = entHash[hashEnt].entEntries[i].backTrack;
@@ -653,48 +572,21 @@ static inline void DeleteEnt(struct EntTable *entHash, struct RelTable *relHash)
             strcpy(newEntities[i - 1].entName, entHash[hashEnt].entEntries[i].entName);
 
             i++;
-
         }
 
         entHash[hashEnt].entNumber--;
-
         free(entHash[hashEnt].entEntries);
-
         entHash[hashEnt].entEntries = newEntities;
-
-
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/*DelRel deve cancellare il binded nella relazione che compare nel comando, quindi:
- *
- * delrel a b relname
- *
- * è come dire
- *
- * "Entra in relname, ed elimina la struct Couple che contiene a e b
- *
- *
- * Quindi la prima cosa da fare è verificare:
- *
- * Che la relazione esista;
- * Che esista la coppia a & b.
- *
- * è inutile verificare che esistano a e b, perchè se esiste la coppia a & b, allora è garantito che esistano sia a che b
- * se non esiste la coppia, allora delrel non deve fare nulla, sia che a o b esistano o meno.
- *
- * Quando cancello una relazione devo cancellare il backtracking? Si
- *
- *
- * Scorro tutte le coppie, cancello quella interessata e poi faccio il fix del backtrack.
- * Il fix consiste nello scorrere tutto l' array di binded della relazione.
- *
- * Se sorgente e destinazione compaiono in altre relazioni tutto ok, se non compaiono devo cancellare l' id dal backtracking
- *
+/*This function deletes a relation between two entities.
+ * The command is valid only if there is a relation between the two ents.
+ * Looking up the entities is not necessary, as if those are linked in memory, then they are by specification
+ * in the entities hash (adding a relation is done only if the ents are present in memory).
  */
-
 
 static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash) {
 
@@ -703,15 +595,12 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
     char *rel;
     struct PlainRel *relFound;
     bool nullDest = false;
-
-
     int tableIndex;
 
     //Leggo il comando
     scanf("%ms", &src);
     scanf("%ms", &dest);
     scanf("%ms", &rel);
-
 
     if (strlen(rel) > 3) {
 
@@ -722,38 +611,37 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
     }
 
+    relFound = RelationLookup(rel, tableIndex, relHash);
 
-    relFound = RelationLookup(rel, tableIndex, relHash); //Cerco la relazione nella hash
+    //The function looks for the relation in the table
 
-    if (relFound != NULL && relFound->binded != NULL) {//Se ho delle coppie sotto la relazione
+    if (relFound != NULL && relFound->binded != NULL) {
 
+        //If the relation has some couples the function looks for the desired one, or else it stops immediately
 
         for (unsigned int i = 0; i < relFound->cplNumber; i++) {
 
             if (strcmp(relFound->binded[i].destination, dest) == 0) {
 
-                //Ho trovato la dest, ora vedo se la dest ha una src uguale a quella del comando
+                //Found the destination, it looks for the source
 
                 for (unsigned int j = 0; j < relFound->binded[i].srcNumber; j++) {
 
                     if (strcmp(relFound->binded[i].source[j], src) == 0) {
 
-                        //ho trovato anche la src, percui devo levarla, riallocare e poi fixare il bt di src e dest.
-                        //i casi son tre, o la src è l' unica entità legata a dest e allora devo far sparire entrambi
-                        //o la src è una src fra tante MA non è l'ultima
-                        //la src è l ultima dell array
+                        //Found the source. The function evaluates its position and then proceeds to the deletion
 
 
-                        if (relFound->binded[i].srcNumber == 0) { //TODO fix barbaro
+                        if (relFound->binded[i].srcNumber == 0) {
 
-                            //ho finito le src percui poi devo liberare anche la dest
+                            //There are no other sources, the function needs to delete also the destination.
 
-                            nullDest = true;
+                            nullDest = true; //Flag for the deletion
                             break;
 
                         } else if (j == relFound->binded[i].srcNumber - 1) {
 
-                            //La src sta in fondo, devo semplicemente deallocare e riallocare
+                            //The source is the last of the array, simple realloc.
 
                             free(relFound->binded[i].source[j]);
                             relFound->binded[i].srcNumber--;
@@ -762,39 +650,32 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
                         } else {
 
-                            //la src ha piu stringhe src, quindi sposto in fondo e rialloco
+                            //The source is in the middle of the array.
+                            //Overwrite it with the last string and then simple realloc.
 
                             relFound->binded[i].source[j] = relFound->binded[i].source[relFound->binded[i].srcNumber -
                                                                                        1];
-                            //Ora rialloco
-
                             relFound->binded[i].srcNumber--;
 
                             relFound->binded[i].source = realloc(relFound->binded[i].source,
                                                                  relFound->binded[i].srcNumber *
                                                                  sizeof(char *));
 
-
+                            //Fix the backtrack array of source and destination
                             FixBacktrack(rel, src, entHash);
                             FixBacktrack(rel, dest, entHash);
-
                             break;
-
-
                         }
                     }
-
-
                 }
 
                 if (nullDest) {
 
-                    //Devo verificare il caso in cui oltre a essere l' ultima source di dest, questa dest sia anche l' ultima
-                    //dest di rel
+                    //The function if flagged needs to delete the destination
 
                     if (relFound->cplNumber == 1) {
 
-                        //libero tutto e me ne fotto, ma la relazione resta in memoria
+                        //If the destination is the only one in the relation, free everything and return
 
                         relFound->cplNumber = 0;
                         free(relFound->binded[0].source);
@@ -808,12 +689,10 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
                     } else {
 
-                        //Libero la source sotto la dest vuota
-                        free(relFound->binded[i].source); //TODO devo liberare tutte le stringhe
+                        //The function frees all the data under the dest (that is invalid data, only to avoid mem leak.
+                        free(relFound->binded[i].source);
 
-                        //devo riallocare l' array di dest
-
-                        //Tutti quelli prima di i vengono ricopiati uguale
+                        //Then the function proceeds to realloc the array mantaining lexicographical order
 
                         struct Couples *newBind = calloc(relFound->cplNumber - 1, sizeof(struct Couples));
                         unsigned int temp = 0;
@@ -843,66 +722,42 @@ static inline void DeleteRel(struct RelTable *relHash, struct EntTable *entHash)
 
                         }
 
-
-                        relFound->binded = newBind;  //Todo mancan delle free importanti i think, nel caso fixo
+                        relFound->binded = newBind;
                         relFound->cplNumber--;
 
-                        //Fixo i bt di source e dest
-
+                        //At last, backtrack fix for both source and dest
                         FixBacktrack(rel, src, entHash);
                         FixBacktrack(rel, dest, entHash);
 
                         return;
                     }
                 }
-
-
             }
-
-
         }
-
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//Il report deve scorrere tutta la tabella hash, e stampare tutte le relazioni che hanno almeno una coppia con il loro max ricevente
-//Il conteggio dei max riceventi lo faccio a tempo di report.
-//L' idea è, scorro per ogni relazione l' array di coppie, entro negli indirizzi e nella tabella di entità incremento
-//un contatore. Una volta incrementato tutti i contatori, rileggo l' array e trovo l' int più grande. Scorro una terza volta
-// e salvo tutti coloro che come indice han quel valore e nel mentre resetto tutti gli indici a zero
-
-//Complessità spaziale: un unsigned int per ogni entità
-//Complessità temporale = Theta(3n)
-
-//Si potrebbe fare meglio in tempo, ma in spazio è praticamente minimo, perche si tratta di un byte per ogni diverso destinatario, e un array con
-// k elementi = numero di destinatari con valore max di sorgenti.
-
-
-
+//Report has to scan all the relations hash and print all the destinations that are associated with the most sources.
+//There could be more than one, so each parity has to be printed in lexicographical order, thus the sorting in memory.
 
 static inline void Report(struct RelTable *relHash) {
-
-
-    struct ReportEnt *entReport;
 
     bool isEmpty = true;
     bool isFirst = true;
 
+    for (int index = 0; index < 4097; index++) {
 
-    for (int index = 0; index < 4097; index++) { //Per ogni chiave della hash
+        if (relHash[index].relNumber != 0) {
 
-        if (relHash[index].relNumber != 0) { //Se la chiave corrisponde a delle relazioni
+            for (unsigned int a = 0; a < relHash[index].relNumber; a++) {
 
-            for (unsigned int a = 0; a < relHash[index].relNumber; a++) {//Per ogni relazione di quella chiave
-
-                //Se l' array di binded è diverso da null, entra e cerca il massimo ricevente con un primo giro,
-                //Successivamente stampa tutti i massimi riceventi
+                //For each relation saved under the hash, if the relation has some entities binded, looks for the
+                //Max receiver and save the number of sources it has.
 
 
                 if (relHash[index].relEntries[a].binded != NULL && relHash[index].relEntries[a].cplNumber > 0) {
-
 
                     isEmpty = false;
 
@@ -912,18 +767,17 @@ static inline void Report(struct RelTable *relHash) {
 
                         if (relHash[index].relEntries[a].binded[i].srcNumber > MAX_REC) {
 
-
                             MAX_REC = relHash[index].relEntries[a].binded[i].srcNumber;
 
                         }
                     }
 
-                    //Ora devo stampare il nome relazione nei due formati, tutti quelli che sono a MAX_REC e poi il valore di MAX_REC
+                    //Then prints the name of the relation, all the max receivers and the number of sources they have
+                    //In a particular format
 
                     if (MAX_REC > 0) {
 
                         if (isFirst) {
-
 
                             printf("%s", relHash[index].relEntries[a].relName);
 
@@ -953,22 +807,19 @@ static inline void Report(struct RelTable *relHash) {
         }
     }
 
+    //If the table is empty prints none
 
     if (isEmpty) {
 
         printf("none");
-
-
     }
 
     printf("\n");
 
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
-//Questa funzione legge il main txt e si occupa di richiamare le diverse funzioni di parsing nel caso di comando su entità, comando su
-//relazione o comando di flusso.
+//This is the parser, responsible of reading from stdin and invoking the functions to manage the data.
 
 static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable) {
 
@@ -978,71 +829,68 @@ static inline bool ParseTxt(struct EntTable *entTable, struct RelTable *relTable
 
     if (inCommand[0] == 'a') {
 
-        if (strcmp(inCommand, "addent") == 0) {//Chiama la funzione che aggiunge un elemento all hash
+        if (strcmp(inCommand, "addent") == 0) {
 
             HashInputEnt(entTable);
-
-
             return true;
 
-        } else {//Chiama la funzione che aggiunge una relazione alla hash
+        } else {
 
             HashInputRel(relTable, entTable);
-
-
             return true;
 
         }
 
     } else if (inCommand[0] == 'd') {
 
-        if (strcmp(inCommand, "delent") == 0) { //chiama la funzione di elimina elemento
+        if (strcmp(inCommand, "delent") == 0) {
 
             DeleteEnt(entTable, relTable);
-
             return true;
 
-
-        } else {  //chiama la funzione di elimina relazione
-
+        } else {
 
             DeleteRel(relTable, entTable);
             return true;
 
         }
 
-    } else if (inCommand[0] == 'r') {/*chiama il report*/
+    } else if (inCommand[0] == 'r') {
 
         Report(relTable);
-
-
         return true;
 
-    } else if (inCommand[0] == 'e') {/*termino*/ return false; }
+    } else  { return false; }
 
 }
 
 //-----HELPERS----------------------------------------------------------------------------------------------------------
 
-//Questa funzione calcola l indice dell' array in cui inserire l' entità o la relazione. La chiave ritornata è calcolata
-//in base a una regola di riduzione dei caratteri validi in input da un indice base 64 a un indice decimale.
+//This function is the core of the software. The specs restricted the usable characters from the ascii table from 127 to 64
+//This is the conversion table used in the software as a keygen fro the hash.
 
-//La compressione dei valori ascii di un carattere a valori compresi fra 0 e 63 avviene come:
 
-/* Se incontro il carattere "-", gli assegno il valore 0;
- * Se incontro una cifra sottraggo al suo valore ascii 47;
- * Se incontro una lettera maiuscola sottraggo 54
- * Se incontro il carattere "_" gli assegno il valore 37
- * Se incontro una lettera minuscola sottraggo 59
+/*  "-" = 0;
+ * 0...9 = x - 47;
+ * A...Z = x - 54
+ *  "_" = 37
+ * a...z = x - 59
  */
 
-//Una volta compressa la lettera, calcolo l hash come:
+//After the compression, the algorythm generates the key as:
 
-//Val_prima * 64 + val_seconda.
+//If the word is longer than one char, take the first letter compressed int value, multiply it by 64 and then adds
+//to it the second letter compressed int value.
 
-//Questo mi ritorna un indice compreso fra 0 e 4095, e lascia il valore indice 4096 per le entità che son più corte di
-//2 caratteri.
+//Example:
 
+
+// "Test" ---> T = Ascii 84 ; e ---> Ascii 101
+
+// Key = (84 - 54) * 64 + (101 - 59) = 1962
+
+//Hence the tables have to have at least 4097 indexes, 0-4095 are the numbers of possible keys, and 4096 is the special
+//key for the words composed of 1 single char
 
 static inline int hash64(char input) {    //Gioele     71  105
 
@@ -1051,24 +899,23 @@ static inline int hash64(char input) {    //Gioele     71  105
 
     hashed = input;
 
-    if (input == 45) {  //Carattere '-'
+    if (input == 45) {  //'-'
 
         hashed = 0;
 
-
-    } else if (48 <= input && input <= 57) {  //Cifre 0...9
+    } else if (48 <= input && input <= 57) {  // 0...9
 
         hashed = input - 47;
 
-    } else if (65 <= input && input <= 90) { //Lettere Maiuscole A..Z
+    } else if (65 <= input && input <= 90) { // A..Z
 
         hashed = input - 54;
 
-    } else if (input == 95) { //Carattere '_'
+    } else if (input == 95) { //'_'
 
         hashed = 37;
 
-    } else if (97 <= input && input <= 122) {  //Lettere minuscole a...z
+    } else if (97 <= input && input <= 122) {  // a...z
 
         hashed = input - 59;
 
@@ -1078,7 +925,7 @@ static inline int hash64(char input) {    //Gioele     71  105
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-//Questa funzione scansiona la tabella di entità per verificare se un' entità esiste già in memoria.
+//This function scans the ent hash looking for a particular entity.
 
 static inline struct PlainEnt *EntityLookup(char *inputName, unsigned int tableHash, struct EntTable *entHash) {
 
@@ -1096,9 +943,9 @@ static inline struct PlainEnt *EntityLookup(char *inputName, unsigned int tableH
     return NULL;
 }
 
-
-
 //----------------------------------------------------------------------------------------------------------------------
+
+//This function scans the rel hash looking for a particular relation.
 
 static inline struct PlainRel *RelationLookup(char *inputName, unsigned int tableHash, struct RelTable *relHash) {
 
@@ -1110,31 +957,18 @@ static inline struct PlainRel *RelationLookup(char *inputName, unsigned int tabl
 
         }
     }
-
     return NULL;
 }
-//----------------------------------------------------------------------------------------------------------------------
-
-
-//----------------------------------------------------------------------------------------------------------------------
-//Entro nella hash a tableindex, accedo alla relazione a relIndex e scorro tutte le coupleNum coppie.
-//Mentre scorro mi creo un array di destinatari in ordine alfabetico e intanto conteggio
-//Ogni volta che aggiungo un dest, lo creo nell array con counter = 1, e ogni volta che lo reincontro incremento.
-//Alla fine ripasso e cerco il max, e con sole due scansioni, una di N binnded e una di k riceventi univoci, ho l array da stampare e ordinato.
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//Data una relazione che ha subito cancellazioni, entro nella tabella hash e fixo il backtrack dell' entità ricercata.
+//This function fixes the backtrack of a particular entity
 
 static inline void FixBacktrack(char *relName, char *entName, struct EntTable *entHash) {
 
     int hashResult;
     struct PlainEnt *foundEnt = NULL;
 
-
-//Cerco l hash dell' entità interessata.
 
     if (strlen(entName) > 3) {
 
@@ -1148,12 +982,14 @@ static inline void FixBacktrack(char *relName, char *entName, struct EntTable *e
 
     foundEnt = EntityLookup(entName, hashResult, entHash);
 
+    //If there is the entity, then decrease the counter for a particular relation in which the entity is involved
+
     if (foundEnt != NULL) {
 
-        for (unsigned int j = 0; j < foundEnt->backtrackIndex; j++) { //Cerco fra tutti i backtrack
+        for (unsigned int j = 0; j < foundEnt->backtrackIndex; j++) {
 
             if (strcmp(foundEnt->backTrack[j].relName, relName) ==
-                0) { //Decremento il counter ogni volta che fixo il bt.
+                0) {
 
                 foundEnt->backTrack[j].counter--;
                 break;
@@ -1164,23 +1000,16 @@ static inline void FixBacktrack(char *relName, char *entName, struct EntTable *e
     }
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-/*Deve entrare dentro ogni songola relazione puntata dal backtrack e cancellare i riferimenti all' entità che possiede il backtrack, inoltre
- * deve sistemare poi tutte le relazioni che modifica.
- *
- * La funzione viene invocata con il nome dell' entità da eliminare e della relazione da eliminare come parametro
- *
- */
+//This function scans the relation hash looking for occurrencies of a particular entity.
+//The relations are those that shows up inside of the bhacktrack of an entity being deleted.
 
 static inline void
-bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTable *entHash) {  //TODO Possibile sbocco
+bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTable *entHash) {
 
     int result = 0;
     struct PlainRel *relFound = NULL;
-    struct PlainEnt *entFound = NULL;
-
 
     if (strlen(relName) > 3) {
 
@@ -1194,19 +1023,17 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
 
     relFound = RelationLookup(relName, result, relHash);
 
-    if (relFound != NULL) { //Se ho trovato la relazione coinvolta, devo eliminare entName dall' array di binded.
+    if (relFound != NULL) {
 
-        if (relFound->binded != NULL) { //Se questa relazione ha dei binded, cerco nei binded il nome che mi interessa
+        if (relFound->binded != NULL) {
 
-            //I casi sono due, o il nome è una dest o il nome è una rel.
-            //prima verifico se è una dest, e scorro tutte le dest. Se la trovo come dest la elimino
-            //Per ogni relazione può essere dest una volta sola, percui appena trovo una dest break, e si passa a verifica delle sources
+            //The functions first looks if the entity is a destination
 
             for (unsigned int i = 0; i < relFound->cplNumber; i++) {
 
                 if (strcmp(relFound->binded[i].destination, entName) == 0) {
 
-                    //è una dest, percui dealloco tutto quello che ha sotto e rialloco l' array di dest.
+                    //It is a destination, frees all the sources binded and fixes all their backtracks
 
                     for (unsigned int j = 0; j < relFound->binded[i].srcNumber; j++) {
 
@@ -1217,7 +1044,8 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
 
                     struct Couples *newBind = calloc(relFound->cplNumber - 1, sizeof(struct Couples));
                     unsigned int temp = 0;
-                    //ricopio tutte le altre dest con la loro struttura dati uguale
+
+                    //Deletes the destinations, and fixes the destinations array
 
                     while (temp < i) {
 
@@ -1228,7 +1056,6 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
 
                         temp++;
                     }
-
 
                     temp = i + 1;
 
@@ -1243,7 +1070,6 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
 
                     }
 
-
                     relFound->binded = newBind;
                     relFound->cplNumber--;
 
@@ -1253,36 +1079,27 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
 
                     }
 
-
-                    //Fixo il bt, ma in un modo speciale, devo pensarci
-                    //Ogni entità src perde un counter se dest è l' entità da levare
-
-
                 }
 
-                //Finito di controllare se l' ent da levare è una dest, passo alle src.
-                //devo controllare in ogni dest se è presente entname, se è presente è univoca percui elimino e rialloco
-                //Ogni entità dest perde un counter se ha l' entità da eliminare fra le src
+                //After deleting a possible destination, the function starts looking for sources that matches the
+                //Name of the entity to delete.
                 for (unsigned int k = 0; k < relFound->cplNumber; k++) {
 
                     for (unsigned int j = 0; j < relFound->binded[k].srcNumber; j++) {
 
                         if (strcmp(relFound->binded[k].source[j], entName) == 0) {
 
-
-
-                            //trovata ent nelle src, devo levarla e so che è unica perchè le coppie src e dest sono univoche
+                            //If the function finds a source, fixes the backtrack and goes to the next dest
+                            //as per requirements finding another would mean duplicates, which is impossible
 
                             FixBacktrack(relFound->relName, relFound->binded[i].destination, entHash);
 
                             if (j == relFound->binded[k].srcNumber - 1) {
 
                                 relFound->binded[k].srcNumber--;
-
                                 relFound->binded[k].source = realloc(relFound->binded[k].source,
                                                                      relFound->binded[k].srcNumber *
                                                                      sizeof(char *));
-
 
                             } else {
 
@@ -1293,7 +1110,6 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
                                        relFound->binded[k].source[relFound->binded[k].srcNumber - 1]);
 
                                 relFound->binded[k].srcNumber--;
-
                                 relFound->binded[k].source = realloc(relFound->binded[k].source,
                                                                      relFound->binded[k].srcNumber *
                                                                      sizeof(char *));
@@ -1301,27 +1117,24 @@ bindRemover(char *relName, char *entName, struct RelTable *relHash, struct EntTa
                                 break;
 
                             }
-
                         }
                     }
-
-
                 }
             }
         }
     }
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-//Deve prendere in input un ptr a entità, cercare se esiste o meno una track per una data relazione, e aggiungerla se manca o incrementare un counter se è gia presente
+//This function creates a backtrack for a particular relation inside an entity
 
-static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO Sembra corretta, ma non lo è
+static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {
 
     bool trackFound = false;
     unsigned int index = 0;
 
+    //If the backtrack array is empty, add the relation first
     if (toAdd->backTrack == NULL) {
 
         toAdd->backtrackIndex = 1;
@@ -1331,11 +1144,12 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO
 
     } else {
 
+        //Looks for the relation, if it finds an existing backtrack, increment the counter
 
-        for (unsigned int i = 0; i < toAdd->backtrackIndex; i++) { //Per tutte le struct track
+        for (unsigned int i = 0; i < toAdd->backtrackIndex; i++) {
 
             if (strcmp(toAdd->backTrack[i].relName, relName) ==
-                0) { //Se trovo la relazione gia nella lista salvo la posizione
+                0) {
 
                 trackFound = true;
                 break;
@@ -1345,27 +1159,21 @@ static inline void AddBacktrack(struct PlainEnt *toAdd, char *relName) {  //TODO
 
         }
 
-        if (trackFound == true) { //Esiste gia in memoria la relazione, incremento il counter
+        if (trackFound == true) {
 
             toAdd->backTrack[index].counter++;
 
 
-        } else { //Non esiste, la aggiungo in coda
+        } else { //If it doesn't exist in memory, adds it last
 
             toAdd->backtrackIndex = index + 1;
-
             toAdd->backTrack = realloc(toAdd->backTrack, toAdd->backtrackIndex * sizeof(struct Track));
-
             toAdd->backTrack[toAdd->backtrackIndex - 1].relName = malloc(strlen(relName) + 1);
-
             strcpy(toAdd->backTrack[toAdd->backtrackIndex - 1].relName, relName);
-
             toAdd->backTrack[toAdd->backtrackIndex - 1].counter = 1;
         }
     }
-
 }
-
 
 //-----MAIN-------------------------------------------------------------------------------------------------------------
 
@@ -1375,13 +1183,9 @@ int main() {
     struct EntTable *entitiesHash = initEntHash();
     struct RelTable *relationHash = initRelHash();
 
+    while (ParseTxt(entitiesHash, relationHash)) {}
 
-    while (ParseTxt(entitiesHash, relationHash)) {
-
-    }
 }
 
-/* TODO LE addent/rel sono giuste, le delete sono un po da riscrivere, perchè non sempre funzionano.
- *      Devo controllare quindi Delent, DelRel, FIxBT e BindRemover.
- *
- */
+//The inefficient deletion (626)  reallocs all the entities as they were placed in order, but it was enough to overwrite
+//the entity with the last one under the same key and realloc the array with one less cell. Forgot to fix.
