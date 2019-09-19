@@ -1,0 +1,20 @@
+*** API 2019 ***
+Politecnico di Milano
+
+Implementazione prototipo del progetto della Priva Finale
+di Algoritmi e Strutture Dati 2019.
+
+Per compilare:
+$ make api19rb
+
+Il codice sorgente è suddiviso in diversi file
+per facilitarne la comprensione.
+Per generare un file sorgente unico:
+$ make main.c
+$ sed -i '1i#define RBTREE' main.c
+
+(O aggiungere '#define RBTREE' all'inizio del file main.c manualmente.)
+
+Autore:
+Michele Chiari
+michele.chiari@polimi.it
