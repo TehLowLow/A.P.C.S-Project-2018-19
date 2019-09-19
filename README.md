@@ -149,6 +149,7 @@ Notes
 -------
 
 The software isn't optimal, and not all the tests cases will work properly.
+Some test files are missing due to GitHub's upload size limits, as they are larger than 25MB, but they are not significant, as there are plenty of others for testing, and they are large enough to give the idea.
 The software is provided AS IS, it will be no longer mantained and/or perfected, as its an educational project.
 For any question, write me an issue or email, and i will try to answer them, but i do not guarantee any anwer.
 
