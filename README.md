@@ -1,4 +1,4 @@
-# A.P.I. Project 2018/19
+# ALGORITHMS AND PRINCIPLES OF COMPUTER SCIENCE Project 2018/19
 
 Relationship Database Manager
 -----------------------------
